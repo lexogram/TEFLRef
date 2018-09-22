@@ -1,6 +1,4 @@
-/* SETTING MARKUP */
-
-#markup {
+#tefl-reference-panel {
   position: fixed;
   left: 0;
   bottom: 0;
@@ -11,11 +9,11 @@
   display: none;
 }
 
-#markup * {
+#tefl-reference-panel * {
   font-size: 1.8vw;
 }
 
-#show-markup {
+#show-reference-panel {
   position: fixed;
   bottom: 0;
   right: 0;
@@ -23,11 +21,11 @@
   opacity: 0;
 }
 
-#show-markup:hover {
+#show-reference-panel:hover {
   opacity: 1;
 }
 
-#show-markup:checked ~ div#markup {
+#show-reference-panel:checked ~ div#tefl-reference-panel {
   display: flex;
   justify-content: space-between;
 }
@@ -104,6 +102,10 @@ div.occurrences {
   flex-direction: column;
 }
 
-.marker span.highlight {
+article.tefl-ref {
+  padding-bottom: 4em;
+}
+
+.tefl-ref span.highlight {
   background-color: #fcc;
 }

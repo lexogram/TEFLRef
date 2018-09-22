@@ -1,12 +1,61 @@
 /** content.js **
  *
- * 
+ *
 **/
 
 
 
 ;(function contentLoaded(){
   "use strict"
+
+
+  /// <<< POLYFILLS
+
+  // // http://stackoverflow.com/a/4314050/1927589
+  // if (!String.prototype.splice) {
+  //   *
+  //    * The splice() method changes the content of a string by
+  //    * removing a range of characters and/or adding new characters.
+  //    *
+  //    * @this {String}
+  //    * @param {number} start Index at which to start changing the string.
+  //    * @param {number} delCount An integer indicating the number of old chars to remove.
+  //    * @param {string} newSubStr The String that is spliced in.
+  //    * @return {string} A new string with the spliced substring.
+     
+  //   String.prototype.splice = function(
+  //     start = 0
+  //   , delCount = 0
+  //   , newSubStr = "") {
+  //     return this.slice(0, start)
+  //          + newSubStr
+  //          + this.slice(start + Math.abs(delCount))
+  //   }
+  // }
+
+
+  if (!Array.prototype.cycle) {
+    Array.prototype.cycle = function(backwards) {
+      if (this.index === undefined) {
+        this.index = backwards
+                   ? -1
+                   : this.length
+      }
+
+      this.index += (1 - (!!backwards) * 2)
+
+      if (this.index < 0) {
+        this.index = this.length - 1
+      } else if (this.index > this.length - 1) {
+        this.index = 0
+      }
+
+      return this[this.index]
+    }
+  }
+
+  /// POLYFILLS >>>
+
 
 
   var expressions = (function getExpressions(){
@@ -31,7 +80,7 @@
   class TEFLRefPanel {
     constructor() {
       console.log("TEFLRefPanel loaded")
-    
+
       if (expressions) {
         console.log(expressions)
        this._injectHTML()
@@ -44,32 +93,33 @@
       ? "TEFLRefPanel activated"
       : "Error: TEFLRefPanel activation failed"
     }
-  
 
-    initialize(event) {
-      this.article.classList.add("marker")
 
-      if (this.updatedArray.index === undefined) {
-        this.goExpression({target: {}})
-      } else if (!(event.target.checked)) {
-        this._showUpdatedArray()
-        this.article.classList.remove("markup")
-      }
-    }
+    // initialize(event) {
+    //   this.article.classList.add("tefl-ref")
+
+    //   if (this.updatedArray.index === undefined) {
+    //     this.goExpression({target: {}})
+    //   } else if (!(event.target.checked)) {
+    //     this._showUpdatedArray()
+    //     this.article.classList.remove("tefl-ref")
+    //   }
+    // }
 
 
     goExpression(event) {
-      let delta = 1 - ((event.target.id==="back") * 2) // -1 | +1
+      let backwards = event.target.id === "back"
       let match
         , temp
 
-      this.expression = this._loopThrough(this.updatedArray, delta)
+      this.expression = this.updatedArray.cycle(backwards)
       // "skid(?:ding|s|ded);skid¡car skid!DW4"
       match = this.parseRegex.exec(this.expression)
 
       this._showInputs(match)
       this._showFlags()
       this._showOccurrences()
+      this._requestWindowsUpdate()
     }
 
 
@@ -129,8 +179,8 @@
 
     _injectHTML() {
       let injectedHTML = `
-        <input type="checkbox" id="show-markup" checked>
-        <div id="markup">
+        <input type="checkbox" id="show-reference-panel" checked>
+        <div id="tefl-reference-panel">
           <div>
             <div class="expression">
               <input type="text" id="regex"
@@ -147,13 +197,13 @@
             </div>
             <div class="flags">
               <select id="dictionary" ="">
-                <option value="cre">Cambridge Russian-English</option> 
+                <option value="cre">Cambridge Russian-English</option>
                 <option value="D">Cambridge English</option>
                 <option value="m">Merriam-Webster</option>
                 <option value="none">—no dictionary—</option>
               </select>
               <select id="wiktionary">
-                <option value="ru">Викисловарь</option> 
+                <option value="ru">Викисловарь</option>
                 <option value="en">Wiktionary</option>
                 <option value="none">—no wikitionary—</option>
               </select>
@@ -162,7 +212,7 @@
               <input type="checkbox" id="images">
               <label for="images">Images</label>
               <select id="wikipedia">
-                <option value="ru">Википедия</option> 
+                <option value="ru">Википедия</option>
                 <option value="en">Wikipedia</option>
                 <option value="none">—no wikipedia—</option>
               </select>
@@ -212,14 +262,14 @@
       this.backButton = document.getElementById("back")
       this.upButton = document.getElementById("up")
       this.downButton = document.getElementById("down")
-      this.showButton = document.getElementById("show-markup")
+      this.showButton = document.getElementById("show-reference-panel")
 
       this.spans = [].slice.call(document.querySelectorAll("span"))
 
-      let listener = this.initialize.bind(this)
-      this.showButton.addEventListener("change", listener, false)
+      // let listener = this.initialize.bind(this)
+      // this.showButton.addEventListener("change", listener, false)
 
-      listener = this.goExpression.bind(this)
+      let listener = this.goExpression.bind(this)
       this.nextButton.addEventListener("mouseup", listener, false)
       this.backButton.addEventListener("mouseup", listener, false)
 
@@ -245,6 +295,8 @@
       this.levelField.addEventListener("change", listener, false)
 
       this.parseRegex = /([^;¡!0-9]+)(;([^!¡0-9]*))?(¡([^!0-9]*))?(!([^!0-9]+))?(\d+)?/
+     
+      this.article.classList.add("tefl-ref")
 
       this.regex = ""
       this.wordLookUp = ""
@@ -253,25 +305,6 @@
       this.level = ""
 
       // this.expression
-    }
-
-
-    _loopThrough(array, delta) {
-      if (array.index === undefined) {
-        array.index = (delta > 0)
-                    ? -1
-                    : array.length
-      }
-
-      array.index += delta
-
-      if (array.index < 0) {
-        array.index = array.length - 1
-      } else if (array.index > array.length - 1) {
-        array.index = 0
-      }
-
-      return array[array.index]
     }
 
 
@@ -293,10 +326,10 @@
 
       this.showWord.checked = !!(this.wordLookUp = match[3] || "")
       this.wordField.value = this.wordLookUp
-      
+
       this.showImage.checked = !!(this.imageLookUp = match[5] || "")
       this.imageField.value = this.imageLookUp
-      
+
       this.showFlags.checked = !!(this.flags = match[7] || "")
       this.flagsField.value = this.flags
 
@@ -304,7 +337,7 @@
 
       // And finally...
       this.regex = this._updateRegex((match[1]))
-    } 
+    }
 
 
     _showFlags() {
@@ -359,8 +392,8 @@
 
 
     scrollToOccurrence(event) {
-      let delta = 1 - (event.target.id === "up") * 2
-      let occurrence = this._loopThrough(this.occurrences, delta)
+      let backwards = event.target.id === "up"
+      let occurrence = this.occurrences.cycle(backwards)
 
       occurrence.scrollIntoView()
     }
@@ -406,7 +439,7 @@
         case "none":
           this._modifyFlags("w", "W")
         break
-      }      
+      }
     }
 
 
@@ -415,7 +448,7 @@
         this._modifyFlags("", "t")
       } else {
         this._modifyFlags("t", "")
-      }    
+      }
     }
 
 
@@ -537,6 +570,15 @@
         // console.log(this.updatedArray)
       }
     }
+
+
+    _requestWindowsUpdate() {
+      let request = {
+        message: "windowsUpdate"
+      , word: this.word
+      , image: this.image
+      }
+    }
   }
 
 
@@ -572,5 +614,5 @@
       console.log("Page action enabled:", response)
     }
   )
-  
+
 })()
