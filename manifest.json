@@ -8,10 +8,18 @@
   , "persistent": false
   }
 
-, "browser_action": {
+, "page_action": {
     "default_icon": "img/icon.png"
   // , "default_popup": "html/popup.html"
   }
+  
+, "content_scripts": [
+    {
+      "matches": ["file:///home/blackslate/Repos/russkiy.fun/support/web/*"]
+    , "js": ["js/content.js"]
+    , "css": ["css/content.css"]
+    }
+  ]
 
 , "permissions": [
     "activeTab"
@@ -22,8 +30,8 @@
 
 // Replace
 // ,
-//(\s*) 
-//
+// (\s*) 
+
 // with
-//
-//\1, 
+
+// \1, 

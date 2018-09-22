@@ -16,23 +16,24 @@
 
 
   var sites = {
-    dictionary: {
-      "0_enru": "https://dictionary.cambridge.org/dictionary/english-russian/word"
-    , "1_en":   "https://dictionary.cambridge.org/dictionary/english/word"
-    , "2_web":  "https://www.merriam-webster.com/dictionary/word"
-    }
-    
-  , wiki: {
-      "0_ru": "https://ru.wiktionary.org/wiki/word"
-    , "1_en": "https://en.wiktionary.org/wiki/word"
-    , "2_en": "https://en.wikipedia.org/wiki/word"
-    , "3_ru": "https://ru.wikipedia.org/wiki/word"
-    }
-    
-  , tatoeba: {
-      "0_enru": "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query=word"
-    }
-  , images: {
+    //   dictionary: {
+    //     "0_enru": "https://dictionary.cambridge.org/dictionary/english-russian/word"
+    //   , "1_en":   "https://dictionary.cambridge.org/dictionary/english/word"
+    //   , "2_web":  "https://www.merriam-webster.com/dictionary/word"
+    //   }
+      
+    // , wiki: {
+    //     "0_ru": "https://ru.wiktionary.org/wiki/word"
+    //   , "1_en": "https://en.wiktionary.org/wiki/word"
+    //   , "2_en": "https://en.wikipedia.org/wiki/word"
+    //   , "3_ru": "https://ru.wikipedia.org/wiki/word"
+    //   }
+      
+    // , tatoeba: {
+    //     "0_enru": "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query=word"
+    //   }
+    // , 
+    images: {
       "0_en": "https://www.google.ru/search?tbm=isch&q=word"
     }
   }
@@ -41,12 +42,46 @@
   notify(sites, Object)
 
 
-  function useExtension() {
-    notify ("useExtension triggered")
+  function showPageAction(tabId, boolean) {
+    if (boolean) {
+      chrome.pageAction.show(tabId)
+    } // else {
+    //   chrome.browserAction.disable(tabId)
+    // }
+  }
 
-    var windowNames = Object.keys(sites)
 
+  function useExtension(args) {
+    notify ("useExtension triggered", args)
+
+    let windowNames = Object.keys(sites)
+    let options = { active: true, currentWindow: true }
+
+    // Open reference windaws
     windowNames.forEach(openWindow)
+
+    // Activate TEFL Reference Panel in content page
+    chrome.tabs.query(
+      options
+    , activateExtension
+    )
+
+
+    function activateExtension(tabs) {
+      let activeTab = tabs[0].id
+      let message = "activateExtension"
+
+      chrome.tabs.sendMessage(  
+        activeTab
+      , message
+      , extensionActivated
+      )
+    }
+
+
+    function extensionActivated(response) {
+      console.log("extensionActivated", response)
+    }
   }
 
 
@@ -102,6 +137,25 @@
     }
   }
 
-  chrome.browserAction.onClicked.addListener(useExtension)
+
+  chrome.pageAction.onClicked.addListener(useExtension)
   notify ("Background script loaded")
+
+
+  chrome.runtime.onMessage.addListener(treatIncomingMessage)
+
+
+  function treatIncomingMessage(request, sender, sendResponse) {
+    let response = "Message received: " + JSON.stringify(request)
+
+    console.log("Incoming message from tab:" + sender.tab.url)
+
+    switch (request.message) {
+      case "showPageAction": {
+        showPageAction(sender.tab.id, request.value)
+      }
+    }
+
+    sendResponse(response)
+  }
 })()

@@ -1,0 +1,109 @@
+/* SETTING MARKUP */
+
+#markup {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: #eee;
+  border-bottom: 1px solid #999; 
+  text-align: center;
+  display: none;
+}
+
+#markup * {
+  font-size: 1.8vw;
+}
+
+#show-markup {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  z-index: 1;
+  opacity: 0;
+}
+
+#show-markup:hover {
+  opacity: 1;
+}
+
+#show-markup:checked ~ div#markup {
+  display: flex;
+  justify-content: space-between;
+}
+
+#regex,
+#word-look-up,
+#image-look-up {
+  width: 21vw;
+}
+
+#flags {
+  width: 7vw;
+}
+
+#level {
+  width: 2vw;
+}
+
+#show-word,
+#show-image,
+#show-flags {
+  position: fixed;
+  top: -100px;
+}
+
+label {
+  display: inline-block;
+  width: 1.4vw;
+  color: #999;
+  font-weight: bold;
+}
+
+input[type=checkbox] {
+  height: 2vw;
+}
+
+label[for=tatoeba],
+label[for=images] {
+  width: auto;
+  font-weight: normal;
+}
+
+input[type="checkbox"]:checked + label {
+  color: #000;
+}
+
+input[type=text] {
+  background-color: #ddd;
+  color: #999;
+}
+
+input#regex,
+#show-word:checked ~ #word-look-up,
+#show-image:checked ~ #image-look-up,
+#show-flags:checked ~ #flags,
+input#level {
+  background-color: #fff;
+  color: #000;
+}
+
+button {
+  font-family: fontello;
+  height: 100%;
+}
+
+button#refresh {
+  height: 6vw;
+  width: 6vw;
+  font-size: 4vw!important;
+}
+
+div.occurrences {
+  display: flex;
+  flex-direction: column;
+}
+
+.marker span.highlight {
+  background-color: #fcc;
+}
