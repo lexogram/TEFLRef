@@ -1,0 +1,29 @@
+{ "name": "TEFLmarkup"
+, "version": "1.0"
+, "description": "Manage custom links for understanding English words"
+, "manifest_version": 2
+
+, "background": {
+    "scripts": ["js/background.js"]
+  , "persistent": false
+  }
+
+, "browser_action": {
+    "default_icon": "img/icon.png"
+  // , "default_popup": "html/popup.html"
+  }
+
+, "permissions": [
+    "activeTab"
+  , "tabs"
+  , "storage"
+  ]
+}
+
+// Replace
+// ,
+//(\s*) 
+//
+// with
+//
+//\1, 
