@@ -136,6 +136,15 @@
     }
 
 
+    tellClientThatAllIsReady(tabId) {
+      if (!tabId) {
+        tabId = this.tabId
+      }
+      
+      chrome.tabs.sendMessage(tabId, "windowsCreated")
+    }
+
+
     extensionActivated(response) {
       console.log("extensionActivated", response)
 
@@ -161,7 +170,7 @@
       let getTabCounter = (windowNames) => {
         let tabCounter = [0]
         tabCounter.callback = () => {
-          chrome.tabs.sendMessage(this.tabId, "windowsCreated")
+          this.tellClientThatAllIsReady.bind(this)
         }
 
         windowNames.forEach((windowName) => {
@@ -257,6 +266,8 @@
 
       if (!instance) {
         instance = new TEFLRefManager(tabId)
+      } else {
+        instance.tellClientThatAllIsReady(tabId)
       }
 
       teflTabMap[tabId] = instance

@@ -38,9 +38,7 @@
     if (!Array.prototype.cycle) {
       Array.prototype.cycle = function(backwards) {
         if (this.index === undefined) {
-          this.index = backwards
-                     ? -1
-                     : this.length
+          this.index = this.length
         }
 
         this.index += (1 - (!!backwards) * 2)
@@ -105,6 +103,7 @@
       // this.level
       // this.spans
       // ... pointers to each panel element
+
     }
 
 
@@ -127,6 +126,13 @@
       this._showInputs(match)
       this._showFlags()
       this._showOccurrences()
+      this._showFlexion()
+
+      console.log(this.updatedArray.slice(
+        Math.max(0, this.updatedArray.index - 2)
+      , Math.min(this.updatedArray.length, this.updatedArray.index + 2)
+      ))
+
       this._requestWindowsUpdate()
     }
 
@@ -186,15 +192,22 @@
 
 
     scrollToOccurrence(event) {
-      let backwards = event.target.id === "up"
-      let occurrence = this.occurrences.cycle(backwards)
+      let back = event && event.target && event.target.id === "up"
+      let occurrence = this.occurrences.cycle(back)
 
       if (occurrence) {
         occurrence.scrollIntoView()
         this.article.classList.remove("error")
+        this.index.innerText= (this.occurrences.index + 1)
+
       } else {
         this.article.classList.add("error")
       }
+    }
+
+
+    redrawAndExport() {
+      this._showUpdatedArray()
     }
 
 
@@ -242,7 +255,7 @@
               <option value="tie">t(?:ie|ies|ied|ying)</option>
               <option value="tow">tow(?:s|ed|ing)?</option>
               <option value="owe">ow(?:e|es|ed|ing)</option>
-              <option value="rot">rot(?:s|ted|tting)?</option>
+              <option value="rot">rot(?:s|ted|ting)?</option>
               <option disabled>----</option>
               <option value="two">plural(?:s)?</option>
             </select
@@ -333,9 +346,9 @@
       this.addField = document.getElementById("addField")
       this.addButton = document.getElementById("addButton")
       this.redraw = document.getElementById("redraw")
-      this.redraw = document.getElementById("refresh")
-      this.redraw = document.getElementById("index")
-      this.redraw = document.getElementById("total")
+      this.refresh = document.getElementById("refresh")
+      this.index = document.getElementById("index")
+      this.total = document.getElementById("total")
       this.upButton = document.getElementById("up")
       this.downButton = document.getElementById("down")
       this.nextButton = document.getElementById("next")
@@ -367,23 +380,11 @@
       this.upButton.addEventListener("mouseup", listener, false)
       this.downButton.addEventListener("mouseup", listener, false)
 
+      listener = this.redrawAndExport.bind(this)
+      this.redraw.addEventListener("mouseup", listener, false)
+
       listener = this.newSelection.bind(this)
       this.panel.addEventListener("change", listener, false)
-      // this.showWord.addEventListener("change", listener, false)
-      // this.showImage.addEventListener("change", listener, false)
-      // this.showFlags.addEventListener("change", listener, false)
-
-      // this.dictionary.addEventListener("change", listener, false)
-      // this.wiktionary.addEventListener("change", listener, false)
-      // this.tatoeba.addEventListener("change", listener, false)
-      // this.imageCheck.addEventListener("change", listener, false)
-      // this.wikipedia.addEventListener("change", listener, false)
-
-      // this.regexField.addEventListener("change", listener, false)
-      // this.wordField.addEventListener("change", listener, false)
-      // this.imageField.addEventListener("change", listener, false)
-      // this.flagsField.addEventListener("change", listener, false)
-      // this.levelField.addEventListener("change", listener, false)
 
       this.parseRegex = /([^;¡!0-9]+)(;([^!¡0-9]*))?(¡([^!0-9]*))?(!([^!0-9]+))?(\d+)?/
      
@@ -493,7 +494,12 @@
         return isMatch
       })
 
-      this.scrollToOccurrence({target: {}})
+      let length = this.occurrences.length
+      this.total.innerText = length
+
+      this._toggleScrollEnabled(length > 1)
+
+      this.scrollToOccurrence()
     }
 
 
@@ -610,7 +616,7 @@
           }
         }
 
-        this._updateField("regex", value)
+        this._updateField("regexString", value)
 
       } catch (error) {
         regex = /$^/ // no matches
@@ -620,16 +626,23 @@
 
       this.regexField.style.color = color
       this.regexField.style.backgroundColor = bgColor
-      this.regexString = value
+      // this.regexString = value // already done in _updateField
 
       return regex
     }
 
 
     _updateField(property, value) {
-      let field = property.replace(/LookUp|String/, "") + "Field"
+      let root = property.replace(/LookUp|String/, "") 
+      let field = root + "Field"
+      let checkbox = "show"+root[0].toUpperCase()+root.substring(1)
+
       this[property] = value
       this[field].value = value
+      if (checkbox = this[checkbox]) {
+        checkbox.checked = !!value
+      }
+
       this._updateArray()
     }
 
@@ -684,7 +697,7 @@
         break
         case "two":
           pattern = "(?:s)?"
-          regex = /\b/
+          regex = /$/
         break     
       }
 
@@ -693,8 +706,47 @@
     }
 
 
+    _showFlexion() {
+      let pattern = "sic"
+
+      let regexString = "(\\(\\?:y\\|ies\\|ied\\|ying\\))"    // try
+      regexString    += "|(\\(\\?:ie\\|ies\\|ied\\|ying\\))"  // tie
+      regexString    += "|(\\(\\?:s\\|ed\\|ing\\)\\?)"        // tow
+      regexString    += "|(\\(\\?:e\\|es\\|ed\\|ing\\))"      // owe
+      regexString    += "|((.)\\(\\?:s\\|\\6ed\\|\\6ing\\)\?)"// rot
+      regexString    += "|(\\(\\?:s\\)\\?)"                   // two
+
+      let regex = new RegExp(regexString)
+      let match = regex.exec(this.regexString)
+
+      pattern = (match)
+      ? match[1]
+        ? "try"
+        : match[2]
+          ? "tie"
+          : match[3]
+            ? "tow"
+            : match[4]
+              ? "owe"
+              : match[5]
+                ? "rot"
+
+                : match[7]
+                  ? "two"
+                  : (console.log("unexpected flexion"), "sic")
+       : "sic"
+
+      this.flexions.value = pattern
+    }
+
+
+    _toggleScrollEnabled(enabled) {
+        this.upButton.disabled = this.downButton.disabled = !enabled
+    }
+
+
     _updateArray() {
-      let newItem = this.regex
+      let newItem = this.regexString
 
       if (this.showWord.checked && this.wordLookUp) {
         newItem += ";" + this.wordLookUp
@@ -723,7 +775,7 @@
       if (noChange) {
         return console.log("No changes made")
       } else {
-        // console.log(this.updatedArray)
+        console.log(JSON.stringify(this.updatedArray))
       }
     }
 
