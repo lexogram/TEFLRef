@@ -231,58 +231,92 @@
 
     _injectHTML() {
       let injectedHTML = `
-        <input type="checkbox" id="show-reference-panel" checked>
-        <div id="tefl-reference-panel">
+        <div class="controls">
           <div>
-            <div class="expression">
-              <input type="text" id="regex"
-              ><input type="checkbox" id="show-word"
-              ><label for="show-word">;</label
-              ><input type="text" id="word-look-up"
-              ><input type="checkbox" id="show-image"
-              ><label for="show-image">¡</label
-              ><input type="text" id="image-look-up"
-              ><input type="checkbox" id="show-flags"
-              ><label for="show-flags">!</label
-              ><input type="text" id="flags"
-              ><input type="text" id="level">
-            </div>
-            <div class="flags">
-              <select id="dictionary" ="">
-                <option value="cre">Cambridge Russian-English</option>
-                <option value="D">Cambridge English</option>
-                <option value="m">Merriam-Webster</option>
-                <option value="none">—no dictionary—</option>
-              </select>
-              <select id="wiktionary">
-                <option value="ru">Викисловарь</option>
-                <option value="en">Wiktionary</option>
-                <option value="none">—no wikitionary—</option>
-              </select>
-              <input type="checkbox" id="tatoeba">
-              <label for="tatoeba">Tatoeba</label>
-              <input type="checkbox" id="images">
-              <label for="images">Images</label>
-              <select id="wikipedia">
-                <option value="ru">Википедия</option>
-                <option value="en">Wikipedia</option>
-                <option value="none">—no wikipedia—</option>
-              </select>
-            </div>
+            <select id="flexions">
+              <option value="sic">as is</option>
+              <option value="try">tr(?:y|ies|ied|ying)</option>
+              <option value="tie">t(?:ie|ies|ied|ying)</option>
+              <option value="toe">to(?:e|es|ed|ing)</option>
+              <option value="tow">tow(?:s|ed|ing)?</option>
+              <option value="owe">ow(?:e|es|ed|ing)</option>
+              <option value="rot">rot(?:s|ted|tting)?</option>
+              <option disabled>----</option>
+              <option value="rot">plural(?:s)?</option>
+            </select
+            ><button type="button" id="remove">-</button>
           </div>
+
+          <div>
+            <textarea id="addField" placeholder="Add expressions here"></textarea
+            ><button type="button" id="addButton">+</button>
+          </div>
+
+
+          <button type="button" id="redraw">⌘</button>
           <button type="button" id="refresh">&#xe800;</button>
-          <div class="occurrences">
-            <button type="button" id="up">&#xe804;</button>
-            <button type="button" id="down">&#xe803;</button>
+
+          <div>
+            <div class="occurrences">
+              <div>
+                <p id="index">1</p
+                ><p>—</p
+                ><p id="total">2</p>
+              </div>
+              <div>
+                <button type="button" id="up">&#xe804;</button>
+                <button type="button" id="down">&#xe803;</button>
+              </div>
+            </div>
+
+            <div class="expressions">
+              <button type="button" id="back">&#xe802;</button
+              ><button type="button" id="next">&#xe801;</button>
+            </div>
           </div>
-          <div class="expression">
-            <button type="button" id="back">&#xe802;</button
-            ><button type="button" id="next">&#xe801;</button>
+        </div>
+
+        <div class="expression">
+          <input type="text" id="regex"
+          ><input type="checkbox" id="show-word"
+          ><label for="show-word">;</label
+          ><input type="text" id="word-look-up"
+          ><input type="checkbox" id="show-image"
+          ><label for="show-image">¡</label
+          ><input type="text" id="image-look-up"
+          ><input type="checkbox" id="show-flags"
+          ><label for="show-flags">!</label
+          ><div>
+            <input type="text" id="flags"
+            ><input type="text" id="level">
           </div>
+        </div>
+
+        <div class="flags">
+          <select id="dictionary">
+            <option value="cre">Cambridge Russian-English</option>
+            <option value="D">Cambridge English</option>
+            <option value="m">Merriam-Webster</option>
+            <option value="none">-no dictionary-</option>
+          </select>
+          <select id="wiktionary">
+            <option value="ru">Викисловарь</option>
+            <option value="en">Wiktionary</option>
+            <option value="none">-no wikitionary-</option>
+          </select>
+          <input type="checkbox" id="tatoeba">
+          <label for="tatoeba">Tatoeba</label>
+          <input type="checkbox" id="images">
+          <label for="images">Images</label>
+          <select id="wikipedia">
+            <option value="ru">Википедия</option>
+            <option value="en">Wikipedia</option>
+            <option value="none">-no wikipedia-</option>
+          </select>
         </div>
       `
       let teflRefPanel = document.createElement("div")
-      teflRefPanel.classList.add("teflref")
+      teflRefPanel.classList.add("tefl-reference-panel")
       teflRefPanel.innerHTML = injectedHTML
       document.body.appendChild(teflRefPanel)
     }

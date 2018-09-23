@@ -86,46 +86,46 @@
       this.tabId = tabId
       this.tabInstances = []
       this.sites = {
-        dictionary: [
-            { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
-            , flag: "^[^Dd]*$"
-            }
-          , { url: "https://dictionary.cambridge.org/dictionary/english/"
-            , flag: "D"
-            }
-          , { url: "https://www.merriam-webster.com/dictionary/"
-            , flag: "m"
-            }
-          ]
+        // dictionary: [
+        //   { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
+        //   , flag: "^[^Dd]*$"
+        //   }
+        // , { url: "https://dictionary.cambridge.org/dictionary/english/"
+        //   , flag: "D"
+        //   }
+        // , { url: "https://www.merriam-webster.com/dictionary/"
+        //   , flag: "m"
+        //   }
+        // ]
 
-        , wiki: [
-            { url: "https://ru.wiktionary.org/wiki/"
-            , hash: "#Английский" 
-            , flag: "^[^Ww]*$"
-            }
-          , { url: "https://en.wiktionary.org/wiki/"
-            , flag: "W"
-            }
-          , { url: "https://en.wikipedia.org/wiki/"
-            , flag: "e"
-            }
-          , { url: "https://ru.wikipedia.org/wiki/"
-            , flag: "E"
-            }
-          ]
+        // , wiki: [
+        //     { url: "https://ru.wiktionary.org/wiki/"
+        //     , hash: "#Английский" 
+        //     , flag: "^[^Ww]*$"
+        //     }
+        //   , { url: "https://en.wiktionary.org/wiki/"
+        //     , flag: "W"
+        //     }
+        //   , { url: "https://en.wikipedia.org/wiki/"
+        //     , flag: "e"
+        //     }
+        //   , { url: "https://ru.wikipedia.org/wiki/"
+        //     , flag: "E"
+        //     }
+        //   ]
 
-        , tatoeba: [
-            { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
-            , flag: "^[^Tt]*$"
-            }
-        , ]
+        // , tatoeba: [
+        //     { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
+        //     , flag: "^[^Tt]*$"
+        //     }
+        // , ]
 
-        , images: [
-            { url: "https://www.google.ru/search?tbm=isch&q="
-            , imageSearch: true 
-            , flag: "^[^Ii]*$"
-            }
-        ]
+        // , images: [
+        //     { url: "https://www.google.ru/search?tbm=isch&q="
+        //     , imageSearch: true 
+        //     , flag: "^[^Ii]*$"
+        //     }
+        // ]
       }
 
       chrome.tabs.sendMessage(

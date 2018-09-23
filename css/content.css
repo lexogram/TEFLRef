@@ -1,31 +1,85 @@
-#tefl-reference-panel {
+/* Main article */
+.tefl-ref {
+  padding-bottom: 4em;
+}
+
+.tefl-ref span.highlight {
+  background-color: #fcc;
+}
+
+/* TEFL Reference Panel */
+
+.tefl-reference-panel {
   position: fixed;
   left: 0;
   bottom: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
   background-color: #eee;
   border-bottom: 1px solid #999; 
   text-align: center;
-  display: none;
-}
-
-#tefl-reference-panel * {
   font-size: 1.8vw;
 }
 
-#show-reference-panel {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 1;
-  opacity: 0;
+/* Controls */
+
+.controls {
+  display: flex;
+  justify-content: space-between;
 }
 
-#show-reference-panel:hover {
-  opacity: 1;
+.controls div {
+  display: flex;
 }
 
-#show-reference-panel:checked ~ div#tefl-reference-panel {
+#flexions {
+  width: 23vw;
+}
+
+#remove
+#add {
+  width: 3.6vw;
+}
+
+.occurrences {
+  display: flex;
+}
+
+.occurrences div {
+  display: flex;
+  flex-direction: column;
+}
+
+.occurrences p {
+  margin: 0.2em 0 -0.5em 
+}
+
+.occurrences button,
+.expressions button {
+  width: 4.1vw;
+}
+
+
+button {
+  font-family: fontello;
+  height: 100%;
+}
+
+#redraw,
+#refresh {
+  height: 6vw;
+  width: 6vw;
+  font-size: 4vw!important;
+}
+
+#addField {
+  width: 32vw;
+}
+
+/* Expression */
+
+.expression {
   display: flex;
   justify-content: space-between;
 }
@@ -33,11 +87,11 @@
 #regex,
 #word-look-up,
 #image-look-up {
-  width: 21vw;
+  width: 26vw;
 }
 
 #flags {
-  width: 7vw;
+  width: 9vw;
 }
 
 #level {
@@ -53,9 +107,13 @@
 
 label {
   display: inline-block;
-  width: 1.4vw;
+  width: 1vw;
   color: #999;
   font-weight: bold;
+}
+
+.expression label {
+  font-size: 2vw;
 }
 
 input[type=checkbox] {
@@ -84,28 +142,4 @@ input#regex,
 input#level {
   background-color: #fff;
   color: #000;
-}
-
-button {
-  font-family: fontello;
-  height: 100%;
-}
-
-button#refresh {
-  height: 6vw;
-  width: 6vw;
-  font-size: 4vw!important;
-}
-
-div.occurrences {
-  display: flex;
-  flex-direction: column;
-}
-
-article.tefl-ref {
-  padding-bottom: 4em;
-}
-
-.tefl-ref span.highlight {
-  background-color: #fcc;
 }
