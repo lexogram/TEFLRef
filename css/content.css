@@ -3,13 +3,17 @@
   padding-bottom: 4em;
 }
 
+.tefl-ref.error {
+  background-color: #fee;
+}
+
 .tefl-ref span.highlight {
   background-color: #fcc;
 }
 
 /* TEFL Reference Panel */
 
-.tefl-reference-panel {
+#tefl-reference-panel {
   position: fixed;
   left: 0;
   bottom: 0;
@@ -68,8 +72,8 @@ button {
 
 #redraw,
 #refresh {
-  height: 6vw;
-  width: 6vw;
+  height: 7vw;
+  width: 7vw;
   font-size: 4vw!important;
 }
 

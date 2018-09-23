@@ -93,6 +93,18 @@
       this._initialize(expressions)
 
       this.updatedArray = this._lint(expressions)
+
+      // this.expression
+      // this.parseRegex
+      // this.occurrences
+      // this.regex
+      // this.regexString
+      // this.wordLookUp
+      // this.imageLookUp
+      // this.flags
+      // this.level
+      // this.spans
+      // ... pointers to each panel element
     }
 
 
@@ -101,18 +113,6 @@
       ? "TEFLRefPanel activated"
       : "Error: TEFLRefPanel activation failed"
     }
-
-
-    // initialize(event) {
-    //   this.article.classList.add("tefl-ref")
-
-    //   if (this.updatedArray.index === undefined) {
-    //     this.goExpression({target: {}})
-    //   } else if (!(event.target.checked)) {
-    //     this._showUpdatedArray()
-    //     this.article.classList.remove("tefl-ref")
-    //   }
-    // }
 
 
     goExpression(event) {
@@ -130,25 +130,15 @@
       this._requestWindowsUpdate()
     }
 
-      // console.log(match)
-      // 0: "expression;link:image+link!Wit7"
-      // 1: "expression"
-      // 2: ";link"
-      // 3: "link"
-      // 4: ":image+link"
-      // 5: "image+link"
-      // 6: "!Wit"
-      // 7: "Wit"
-      // 8: "7"
-      // groups: undefined
-      // index: 0
-      // input: "expression;link¡image+link!Wit7"
-
 
     newSelection(event) {
       let target = event.target
 
       switch (target) {
+        case this.flexions:
+          this._applyFlexion(target.value)
+        break
+
         case this.showWord:
           this._updateLookUp("wordField", target.checked)
         break
@@ -195,6 +185,19 @@
     }
 
 
+    scrollToOccurrence(event) {
+      let backwards = event.target.id === "up"
+      let occurrence = this.occurrences.cycle(backwards)
+
+      if (occurrence) {
+        occurrence.scrollIntoView()
+        this.article.classList.remove("error")
+      } else {
+        this.article.classList.add("error")
+      }
+    }
+
+
     _lint(expressions) {
       expressions = expressions.slice()
 
@@ -237,12 +240,11 @@
               <option value="sic">as is</option>
               <option value="try">tr(?:y|ies|ied|ying)</option>
               <option value="tie">t(?:ie|ies|ied|ying)</option>
-              <option value="toe">to(?:e|es|ed|ing)</option>
               <option value="tow">tow(?:s|ed|ing)?</option>
               <option value="owe">ow(?:e|es|ed|ing)</option>
               <option value="rot">rot(?:s|ted|tting)?</option>
               <option disabled>----</option>
-              <option value="rot">plural(?:s)?</option>
+              <option value="two">plural(?:s)?</option>
             </select
             ><button type="button" id="remove">-</button>
           </div>
@@ -316,7 +318,7 @@
         </div>
       `
       let teflRefPanel = document.createElement("div")
-      teflRefPanel.classList.add("tefl-reference-panel")
+      teflRefPanel.id = "tefl-reference-panel"
       teflRefPanel.innerHTML = injectedHTML
       document.body.appendChild(teflRefPanel)
     }
@@ -324,6 +326,20 @@
 
     _initialize() {
       this.article = document.querySelector("article")
+      this.panel = document.getElementById("tefl-reference-panel")
+
+      this.flexions = document.getElementById("flexions")
+      this.remove = document.getElementById("remove")
+      this.addField = document.getElementById("addField")
+      this.addButton = document.getElementById("addButton")
+      this.redraw = document.getElementById("redraw")
+      this.redraw = document.getElementById("refresh")
+      this.redraw = document.getElementById("index")
+      this.redraw = document.getElementById("total")
+      this.upButton = document.getElementById("up")
+      this.downButton = document.getElementById("down")
+      this.nextButton = document.getElementById("next")
+      this.backButton = document.getElementById("back")
 
       this.regexField = document.getElementById("regex")
       this.wordField = document.getElementById("word-look-up")
@@ -341,16 +357,7 @@
       this.imageCheck = document.getElementById("images")
       this.wikipedia = document.getElementById("wikipedia")
 
-      this.nextButton = document.getElementById("next")
-      this.backButton = document.getElementById("back")
-      this.upButton = document.getElementById("up")
-      this.downButton = document.getElementById("down")
-      this.showButton = document.getElementById("show-reference-panel")
-
       this.spans = [].slice.call(document.querySelectorAll("span"))
-
-      // let listener = this.initialize.bind(this)
-      // this.showButton.addEventListener("change", listener, false)
 
       let listener = this.goExpression.bind(this)
       this.nextButton.addEventListener("mouseup", listener, false)
@@ -361,21 +368,22 @@
       this.downButton.addEventListener("mouseup", listener, false)
 
       listener = this.newSelection.bind(this)
-      this.showWord.addEventListener("change", listener, false)
-      this.showImage.addEventListener("change", listener, false)
-      this.showFlags.addEventListener("change", listener, false)
+      this.panel.addEventListener("change", listener, false)
+      // this.showWord.addEventListener("change", listener, false)
+      // this.showImage.addEventListener("change", listener, false)
+      // this.showFlags.addEventListener("change", listener, false)
 
-      this.dictionary.addEventListener("change", listener, false)
-      this.wiktionary.addEventListener("change", listener, false)
-      this.tatoeba.addEventListener("change", listener, false)
-      this.imageCheck.addEventListener("change", listener, false)
-      this.wikipedia.addEventListener("change", listener, false)
+      // this.dictionary.addEventListener("change", listener, false)
+      // this.wiktionary.addEventListener("change", listener, false)
+      // this.tatoeba.addEventListener("change", listener, false)
+      // this.imageCheck.addEventListener("change", listener, false)
+      // this.wikipedia.addEventListener("change", listener, false)
 
-      this.regexField.addEventListener("change", listener, false)
-      this.wordField.addEventListener("change", listener, false)
-      this.imageField.addEventListener("change", listener, false)
-      this.flagsField.addEventListener("change", listener, false)
-      this.levelField.addEventListener("change", listener, false)
+      // this.regexField.addEventListener("change", listener, false)
+      // this.wordField.addEventListener("change", listener, false)
+      // this.imageField.addEventListener("change", listener, false)
+      // this.flagsField.addEventListener("change", listener, false)
+      // this.levelField.addEventListener("change", listener, false)
 
       this.parseRegex = /([^;¡!0-9]+)(;([^!¡0-9]*))?(¡([^!0-9]*))?(!([^!0-9]+))?(\d+)?/
      
@@ -486,14 +494,6 @@
       })
 
       this.scrollToOccurrence({target: {}})
-    }
-
-
-    scrollToOccurrence(event) {
-      let backwards = event.target.id === "up"
-      let occurrence = this.occurrences.cycle(backwards)
-
-      occurrence.scrollIntoView()
     }
 
 
@@ -627,7 +627,7 @@
 
 
     _updateField(property, value) {
-      let field = property.replace("LookUp", "") + "Field"
+      let field = property.replace(/LookUp|String/, "") + "Field"
       this[property] = value
       this[field].value = value
       this._updateArray()
@@ -649,6 +649,47 @@
       this.showFlags.checked = !!this.flags
 
       this._updateArray()
+    }
+
+
+    _applyFlexion(flexion) {
+      let pattern
+      let regex
+      let replacement
+
+      switch (flexion) {
+        case "sic":
+          pattern = ""
+          regex = /$^/
+        break
+        case "try":
+          pattern = "(?:y|ies|ied|ying)"
+          regex = /(y|ies|ied|ying)\b/
+        break
+        case "tie":
+          pattern = "(?:ie|ies|ied|ying)"
+          regex = /(ie|ies|ied|ying)\b/
+        break
+        case "tow":
+          pattern = "$1(?:s|ed|ing)?"
+          regex = /([bcdfghjklmnprstvwxyz])(s|ed|ing)?\b/
+        break
+        case "owe":
+          pattern = "(?:e|es|ed|ing)"
+          regex = /(e|es|ed|ing)\b/
+        break
+        case "rot":
+          pattern = "$1(?:s|$1ed|$1ing)?"
+          regex = /([bdfglmnprst])(s|ed|ing)?\b/
+        break
+        case "two":
+          pattern = "(?:s)?"
+          regex = /\b/
+        break     
+      }
+
+      replacement = this.regexString.replace(regex, pattern)
+      this._updateField("regexString", replacement)
     }
 
 
