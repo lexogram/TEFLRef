@@ -658,6 +658,7 @@
         message: "windowsUpdate"
       , word: this.wordLookUp || this.regexString
       , image: this.imageLookUp || this.wordLookUp || this.regexString
+      , flags: this.flags
       }
 
       console.log(message)

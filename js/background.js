@@ -30,6 +30,8 @@
       this.rootURL = urlData.url
       this.hash = urlData.hash || ""
       this.imageSearch = !!urlData.imageSearch
+      this.flagsRegex = new RegExp(urlData.flag)
+
       this.tabCounter = tabCounter
 
       // this.tabId
@@ -45,8 +47,6 @@
       this.tabId = tabData.id
       this.tabCounter[0] -= 1
 
-      console.log("tabCreated", this.tabCounter[0], this.url)
-
       if (!this.tabCounter[0]) {
         this.tabCounter.callback()
       }
@@ -60,9 +60,15 @@
                 : request.word
                 )
               + this.hash
-      let callback = this.urlUpdated.bind(this)
 
-      chrome.tabs.update( this.tabId, { url: url }, callback )
+      let callback = this.urlUpdated.bind(this)
+      let selected = this.flagsRegex.test(request.flags)
+      let options = {
+        url: url
+      , highlighted: selected
+      }
+
+      chrome.tabs.update( this.tabId, options, callback )
 
       return true
     }
@@ -81,27 +87,43 @@
       this.tabInstances = []
       this.sites = {
         dictionary: [
-            { url: "https://dictionary.cambridge.org/dictionary/english-russian/" }
-          , { url: "https://dictionary.cambridge.org/dictionary/english/" }
-          , { url: "https://www.merriam-webster.com/dictionary/" }
+            { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
+            , flag: "^[^Dd]*$"
+            }
+          , { url: "https://dictionary.cambridge.org/dictionary/english/"
+            , flag: "D"
+            }
+          , { url: "https://www.merriam-webster.com/dictionary/"
+            , flag: "m"
+            }
           ]
 
         , wiki: [
             { url: "https://ru.wiktionary.org/wiki/"
             , hash: "#Английский" 
+            , flag: "^[^Ww]*$"
             }
-          , { url: "https://en.wiktionary.org/wiki/" }
-          , { url: "https://en.wikipedia.org/wiki/" }
-          , { url: "https://ru.wikipedia.org/wiki/" }
+          , { url: "https://en.wiktionary.org/wiki/"
+            , flag: "W"
+            }
+          , { url: "https://en.wikipedia.org/wiki/"
+            , flag: "e"
+            }
+          , { url: "https://ru.wikipedia.org/wiki/"
+            , flag: "E"
+            }
           ]
 
         , tatoeba: [
-            { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query=" }
+            { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
+            , flag: "^[^Tt]*$"
+            }
         , ]
 
         , images: [
             { url: "https://www.google.ru/search?tbm=isch&q="
-            , imageSearch: true
+            , imageSearch: true 
+            , flag: "^[^Ii]*$"
             }
         ]
       }
