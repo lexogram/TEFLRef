@@ -17,39 +17,94 @@
 
   notify ("Background script loaded")
 
-  var teflTabMap = {}
   /// <<< HARD-CODED
   var activeIconPath = "img/active.png" // { "16": <path> }
   /// HARD-CODED >>>
 
 
+  var teflTabMap = {}
+
+
+  class TEFLTab {
+    constructor(urlData, tabCounter) {
+      this.rootURL = urlData.url
+      this.hash = urlData.hash || ""
+      this.imageSearch = !!urlData.imageSearch
+      this.tabCounter = tabCounter
+
+      // this.tabId
+    }
+
+
+    createTab(options) {
+      chrome.tabs.create(options, this.tabCreated.bind(this))
+    }
+
+
+    tabCreated(tabData) {
+      this.tabId = tabData.id
+      this.tabCounter[0] -= 1
+
+      console.log("tabCreated", this.tabCounter[0], this.url)
+
+      if (!this.tabCounter[0]) {
+        this.tabCounter.callback()
+      }
+    }
+
+  
+    setURL(request) {
+      let url = this.rootURL
+              + (this.imageSearch
+                ? request.image || request.word
+                : request.word
+                )
+              + this.hash
+      let callback = this.urlUpdated.bind(this)
+
+      chrome.tabs.update( this.tabId, { url: url }, callback )
+
+      return true
+    }
+
+
+    urlUpdated() {
+      console.log("urlUpdated for " + this.tabId, ...arguments)
+    }
+  }
+
+
+
   class TEFLRefManager {
     constructor (tabId) {
       this.tabId = tabId
-      this.tabIds = []
+      this.tabInstances = []
       this.sites = {
-      //     dictionary: {
-      //       "0_enru": "https://dictionary.cambridge.org/dictionary/english-russian/word"
-      //     , "1_en":   "https://dictionary.cambridge.org/dictionary/english/word"
-      //     , "2_web":  "https://www.merriam-webster.com/dictionary/word"
-      //     }
+        dictionary: [
+            { url: "https://dictionary.cambridge.org/dictionary/english-russian/" }
+          , { url: "https://dictionary.cambridge.org/dictionary/english/" }
+          , { url: "https://www.merriam-webster.com/dictionary/" }
+          ]
 
-      //   , wiki: {
-      //       "0_ru": "https://ru.wiktionary.org/wiki/word"
-      //     , "1_en": "https://en.wiktionary.org/wiki/word"
-      //     , "2_en": "https://en.wikipedia.org/wiki/word"
-      //     , "3_ru": "https://ru.wikipedia.org/wiki/word"
-      //     }
+        , wiki: [
+            { url: "https://ru.wiktionary.org/wiki/"
+            , hash: "#Английский" 
+            }
+          , { url: "https://en.wiktionary.org/wiki/" }
+          , { url: "https://en.wikipedia.org/wiki/" }
+          , { url: "https://ru.wikipedia.org/wiki/" }
+          ]
 
-      //   , tatoeba: {
-      //       "0_enru": "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query=word"
-      //     }
-      //   ,
-      //   images: {
-      //     "0_en": "https://www.google.ru/search?tbm=isch&q=word"
-      //   }
+        , tatoeba: [
+            { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query=" }
+        , ]
+
+        , images: [
+            { url: "https://www.google.ru/search?tbm=isch&q="
+            , imageSearch: true
+            }
+        ]
       }
-
 
       chrome.tabs.sendMessage(
         this.tabId
@@ -71,41 +126,61 @@
     }
 
 
-    _openWindows() {
-      let openWindow = (windowName, index) => {
-        let windowCreatedCallback = (windowData) => {
-          let siteData = this.sites[windowName]
-          let siteKeys = Object.keys(siteData)
-          let url
+    updateWindows(request) {
+      let success = this.tabInstances.every((tabInstance) => {
+        return tabInstance.setURL(request)
+      })
 
-          notify ("window opened", windowData)
+      return success
+    }
+
+
+    _openWindows() {
+      let getTabCounter = (windowNames) => {
+        let tabCounter = [0]
+        tabCounter.callback = () => {
+          chrome.tabs.sendMessage(this.tabId, "windowsCreated")
+        }
+
+        windowNames.forEach((windowName) => {
+          let siteData = this.sites[windowName]
+          tabCounter[0] += siteData.length
+        })
+
+        console.log("getTabCounter", tabCounter[0])
+
+        return tabCounter
+      }
+
+      let openWindow = (windowName, index) => {
+
+        let windowCreatedCallback = (windowData) => {
 
           let options = {
             windowId: windowData.id
           , active: false
           }
 
-          siteKeys.forEach((siteKey, index) => {
+          let createTabInstance = (urlData, index) => {
+            let tabInstance = new TEFLTab(urlData, tabCounter)
+            this.tabInstances.push(tabInstance)
+
             if (!index) {
-              chrome.tabs.update(
-                windowData.tabs[0].id
-              , { url: siteData[siteKey] }
-              )
+              tabInstance.tabCreated(windowData.tabs[0])
 
             } else {
-              options.url = siteData[siteKey]
-              chrome.tabs.create(options, tabCreatedCallback)
+              tabInstance.createTab(options)
             }
-          })
+          }
+
+
+          let siteData = this.sites[windowName]
+          let url
+
+          notify ("window opened", windowData)
+
+          siteData.forEach(createTabInstance)
         }
-
-
-        let tabCreatedCallback = (tabData) => {
-          notify ("tab created", tabData)
-          this.tabIds.push(tabData.id)
-          console.log(this.tabIds)
-        }
-
 
         let width = Math.max(521, (screen.availWidth) / 4)
         let leftEdge = screen.availWidth - (width * 2)
@@ -128,6 +203,8 @@
       }
 
       let windowNames = Object.keys(this.sites)
+      let tabCounter = getTabCounter(windowNames)
+      
       windowNames.forEach(openWindow)
     }
   }
@@ -154,8 +231,22 @@
 
     function activateExtension(tabs) {
       let tabId = tabs[0].id
-      teflTabMap[tabId] = new TEFLRefManager(tabId)
+      let instance = teflTabMap[Object.keys(teflTabMap)[0]]
+
+      if (!instance) {
+        instance = new TEFLRefManager(tabId)
+      }
+
+      teflTabMap[tabId] = instance
     }
+  }
+
+
+  function updateWindows(request, sender) {
+    let manager = teflTabMap[sender.tab.id]
+    let response = manager.updateWindows(request)
+
+    return response
   }
 
 
@@ -165,9 +256,14 @@
     console.log("Incoming message from tab:" + sender.tab.url)
 
     switch (request.message) {
-      case "showPageAction": {
+      case "showPageAction":
         showPageAction(sender.tab.id, request.value)
-      }
+    
+      break
+
+      case "windowsUpdate": 
+        response = updateWindows(request, sender)
+      break
     }
 
     sendResponse(response)

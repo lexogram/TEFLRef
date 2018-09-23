@@ -11,54 +11,60 @@
 
   /// <<< POLYFILLS
 
-  // // http://stackoverflow.com/a/4314050/1927589
-  // if (!String.prototype.splice) {
-  //   *
-  //    * The splice() method changes the content of a string by
-  //    * removing a range of characters and/or adding new characters.
-  //    *
-  //    * @this {String}
-  //    * @param {number} start Index at which to start changing the string.
-  //    * @param {number} delCount An integer indicating the number of old chars to remove.
-  //    * @param {string} newSubStr The String that is spliced in.
-  //    * @return {string} A new string with the spliced substring.
-     
-  //   String.prototype.splice = function(
-  //     start = 0
-  //   , delCount = 0
-  //   , newSubStr = "") {
-  //     return this.slice(0, start)
-  //          + newSubStr
-  //          + this.slice(start + Math.abs(delCount))
-  //   }
-  // }
-
-
-  if (!Array.prototype.cycle) {
-    Array.prototype.cycle = function(backwards) {
-      if (this.index === undefined) {
-        this.index = backwards
-                   ? -1
-                   : this.length
+    // http://stackoverflow.com/a/4314050/1927589
+    if (!String.prototype.splice) {
+      /*
+       * The splice() method changes the content of a string by
+       * removing a range of characters and/or adding new characters.
+       *
+       * @this {String}
+       * @param {number} start Index at which to start changing the string.
+       * @param {number} delCount An integer indicating the number of old chars to remove.
+       * @param {string} newSubStr The String that is spliced in.
+       * @return {string} A new string with the spliced substring.
+       */
+      
+      String.prototype.splice = function(
+        start = 0
+      , delCount = 0
+      , newSubStr = "") {
+        return this.slice(0, start)
+             + newSubStr
+             + this.slice(start + Math.abs(delCount))
       }
-
-      this.index += (1 - (!!backwards) * 2)
-
-      if (this.index < 0) {
-        this.index = this.length - 1
-      } else if (this.index > this.length - 1) {
-        this.index = 0
-      }
-
-      return this[this.index]
     }
-  }
+
+
+    if (!Array.prototype.cycle) {
+      Array.prototype.cycle = function(backwards) {
+        if (this.index === undefined) {
+          this.index = backwards
+                     ? -1
+                     : this.length
+        }
+
+        this.index += (1 - (!!backwards) * 2)
+
+        if (this.index < 0) {
+          this.index = this.length - 1
+        } else if (this.index > this.length - 1) {
+          this.index = 0
+        }
+
+        return this[this.index]
+      }
+    }
 
   /// POLYFILLS >>>
+
+  function genericCallback() {
+    console.log(...arguments)
+  }
 
 
 
   var expressions = (function getExpressions(){
+    // Parse the HTML page for the expressions array
     let result = null
 
     let HTML = document.body.innerHTML
@@ -78,15 +84,17 @@
 
 
   class TEFLRefPanel {
-    constructor() {
+    constructor(expressions) {
       console.log("TEFLRefPanel loaded")
 
-      if (expressions) {
-        console.log(expressions)
-       this._injectHTML()
-       this._initialize(expressions)
-     }
+      this.expressions = expressions
+
+      this._injectHTML()
+      this._initialize(expressions)
+
+      this.updatedArray = this._lint(expressions)
     }
+
 
     getState() {
       return this.expressions
@@ -108,11 +116,11 @@
 
 
     goExpression(event) {
-      let backwards = event.target.id === "back"
+      let back = event && event.target && event.target.id === "back"
       let match
         , temp
 
-      this.expression = this.updatedArray.cycle(backwards)
+      this.expression = this.updatedArray.cycle(back)
       // "skid(?:ding|s|ded);skid¡car skid!DW4"
       match = this.parseRegex.exec(this.expression)
 
@@ -121,6 +129,20 @@
       this._showOccurrences()
       this._requestWindowsUpdate()
     }
+
+      // console.log(match)
+      // 0: "expression;link:image+link!Wit7"
+      // 1: "expression"
+      // 2: ";link"
+      // 3: "link"
+      // 4: ":image+link"
+      // 5: "image+link"
+      // 6: "!Wit"
+      // 7: "Wit"
+      // 8: "7"
+      // groups: undefined
+      // index: 0
+      // input: "expression;link¡image+link!Wit7"
 
 
     newSelection(event) {
@@ -170,6 +192,36 @@
       }
 
       // console.log(target.id, target.checked || target.value)
+    }
+
+
+    _lint(expressions) {
+      expressions = expressions.slice()
+
+      expressions.forEach((expression, index) => {
+        let fixed = false
+        let match = this.parseRegex.exec(expression)     
+        let wordLookUp = match[3] || ""
+        let imageLookUp = match[5] || ""
+
+        let temp = wordLookUp.replace(/ /, "+")
+        if (temp !== wordLookUp) {
+          fixed = true
+          wordLookUp = temp
+        }
+
+        temp = imageLookUp.replace(/ /, "+")
+        if (temp !== imageLookUp) {
+          fixed = true
+          imageLookUp = temp
+        }
+
+        if (fixed) {
+
+        }
+      })
+
+      return expressions
     }
 
 
@@ -236,10 +288,7 @@
     }
 
 
-    _initialize(expressions) {
-      this.expressions = expressions
-      this.updatedArray = expressions.slice()
-
+    _initialize() {
       this.article = document.querySelector("article")
 
       this.regexField = document.getElementById("regex")
@@ -299,6 +348,7 @@
       this.article.classList.add("tefl-ref")
 
       this.regex = ""
+      this.regexString = ""
       this.wordLookUp = ""
       this.imageLookUp = ""
       this.flags = ""
@@ -372,6 +422,20 @@
 
       this.tatoeba.checked = (this.flags.indexOf("t") < 0)
       this.imageCheck.checked = (this.flags.indexOf("i") < 0)
+
+      // console.log(match)
+      // 0: "expression;link:image+link!Wit7"
+      // 1: "expression"
+      // 2: ";link"
+      // 3: "link"
+      // 4: ":image+link"
+      // 5: "image+link"
+      // 6: "!Wit"
+      // 7: "Wit"
+      // 8: "7"
+      // groups: undefined
+      // index: 0
+      // input: "expression;link¡image+link!Wit7"
     }
 
 
@@ -428,6 +492,21 @@
     }
 
 
+      // console.log(match)
+      // 0: "expression;link:image+link!Wit7"
+      // 1: "expression"
+      // 2: ";link"
+      // 3: "link"
+      // 4: ":image+link"
+      // 5: "image+link"
+      // 6: "!Wit"
+      // 7: "Wit"
+      // 8: "7"
+      // groups: undefined
+      // index: 0
+      // input: "expression;link¡image+link!Wit7"
+
+
     _updateWiktionary(value) {
       switch (value) {
         case "ru":
@@ -479,20 +558,21 @@
     _updateRegex(value) {
       let color = "#000"
       let bgColor = "#fff"
+      let index = -1
       let regex
-        , index
 
       try {
         regex = new RegExp("^" + value + "$", "i")
-        index = value.indexOf("(")
 
-        if (index < 0) {
-
-        } else {
+        // Ensure that any parentheses are non-capturing
+        while ((index = value.indexOf("(", index + 1)) > -1) {
           if (value.indexOf("?:") !== index + 1) {
             value = value.splice(index + 1, 0, "?:")
             color = "#060"
             bgColor = "#efe"
+
+            // Correct the regular expression
+            regex = new RegExp("^" + value + "$", "i")
           }
         }
 
@@ -506,6 +586,7 @@
 
       this.regexField.style.color = color
       this.regexField.style.backgroundColor = bgColor
+      this.regexString = value
 
       return regex
     }
@@ -573,11 +654,18 @@
 
 
     _requestWindowsUpdate() {
-      let request = {
+      let message = {
         message: "windowsUpdate"
-      , word: this.word
-      , image: this.image
+      , word: this.wordLookUp || this.regexString
+      , image: this.imageLookUp || this.wordLookUp || this.regexString
       }
+
+      console.log(message)
+
+      chrome.runtime.sendMessage(
+        message
+      , genericCallback
+      )
     }
   }
 
@@ -595,8 +683,12 @@
 
     switch (request) {
       case "activateExtension":
-        chrome.teflRefPanel = new TEFLRefPanel()
+        chrome.teflRefPanel = new TEFLRefPanel(expressions)
         response = chrome.teflRefPanel.getState()
+      break
+
+      case "windowsCreated":
+        chrome.teflRefPanel.goExpression()
       break
     }
 
@@ -610,9 +702,7 @@
     { message: "showPageAction"
     , value: !!expressions
     }
-  , function(response) {
-      console.log("Page action enabled:", response)
-    }
+  , genericCallback
   )
 
 })()
