@@ -835,7 +835,7 @@
     let response = "Message received:" + JSON.stringify(request)
 
     // console.log (
-      "Message received"
+    //  "Message received"
     // , sender.tab
     // ? "from a content script:" + sender.tab.url
     // : "from the extension"
@@ -844,7 +844,9 @@
 
     switch (request) {
       case "activateExtension":
-        chrome.teflRefPanel = new TEFLRefPanel(expressions)
+        if (!chrome.teflRefPanel) {
+          chrome.teflRefPanel = new TEFLRefPanel(expressions)
+        }
         response = chrome.teflRefPanel.getState()
       break
 

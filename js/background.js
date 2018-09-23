@@ -148,7 +148,7 @@
 
 
     extensionActivated(response) {
-      console.log("extensionActivated", response)
+      // console.log("extensionActivated", response)
 
       chrome.pageAction.setIcon({
         tabId: this.tabId
