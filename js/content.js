@@ -66,7 +66,7 @@
     let result = null
 
     let HTML = document.body.innerHTML
-    let regex = /let\s+(\w+)\s*=\s*(\[[\S\s]*\])[\s\S]*new\s+\w+\.MarkUp\(\1/
+    let regex = /\n\s*let\s+(\w+)\s*=\s*(\[[\S\s]*\])[\s\S]*new\s+\w+\.MarkUp\(\1/
     let match = regex.exec(HTML)
 
     if (match) {
@@ -83,14 +83,10 @@
 
   class TEFLRefPanel {
     constructor(expressions) {
-      console.log("TEFLRefPanel loaded")
+      // console.log ("TEFLRefPanel loaded")
 
       this.expressions = expressions
-
-      this._injectHTML()
-      this._initialize(expressions)
-
-      this.updatedArray = this._lint(expressions)
+      this.loadInterface()
 
       // this.expression
       // this.parseRegex
@@ -103,6 +99,14 @@
       // this.level
       // this.spans
       // ... pointers to each panel element
+    }
+
+
+    loadInterface() {
+      this._injectHTML()
+      this._initialize()
+
+      this.updatedArray = this._launderExpressions()
 
     }
 
@@ -121,6 +125,12 @@
 
       this.expression = this.updatedArray.cycle(back)
       // "skid(?:ding|s|ded);skid¡car skid!DW4"
+
+      if (!this.expression) {
+        // this.updatedArray is empty
+        return
+      }
+
       match = this.parseRegex.exec(this.expression)
 
       this._showInputs(match)
@@ -128,10 +138,10 @@
       this._showOccurrences()
       this._showFlexion()
 
-      console.log(this.updatedArray.slice(
-        Math.max(0, this.updatedArray.index - 2)
-      , Math.min(this.updatedArray.length, this.updatedArray.index + 2)
-      ))
+      // console.log(this.updatedArray.slice(
+      //   Math.max(0, this.updatedArray.index - 2)
+      // , Math.min(this.updatedArray.length, this.updatedArray.index + 2)
+      // ))
 
       this._requestWindowsUpdate()
     }
@@ -211,29 +221,29 @@
     }
 
 
-    _lint(expressions) {
-      expressions = expressions.slice()
+    _launderExpressions() {
+      let expressions = this.expressions.slice()
 
       expressions.forEach((expression, index) => {
         let fixed = false
         let match = this.parseRegex.exec(expression)     
-        let wordLookUp = match[3] || ""
-        let imageLookUp = match[5] || ""
+        let wordLookUp = match[2] || ""
+        let imageLookUp = match[4] || ""
 
         let temp = wordLookUp.replace(/ /, "+")
         if (temp !== wordLookUp) {
           fixed = true
-          wordLookUp = temp
+          match[2] = temp
         }
 
         temp = imageLookUp.replace(/ /, "+")
         if (temp !== imageLookUp) {
           fixed = true
-          imageLookUp = temp
+          match[4] = temp
         }
 
         if (fixed) {
-
+          expressions[index] = this._generateExpression(match)
         }
       })
 
@@ -745,6 +755,29 @@
     }
 
 
+    _generateExpression(expressionArray) {
+      // console.log(expressionArray)
+
+      // 0: "regex;link¡image link!flags70"
+      // 1: "regex"
+      // 2: ";link"        // <<< may have been corrected
+      // 3: "link"
+      // 4: "¡image+link"  // <<< may have been corrected
+      // 5: "image link"
+      // 6: "!flags"
+      // 7: "flags"
+      // 8: "<integer level>"
+
+      let expression = expressionArray[1]
+                     + (expressionArray[2] || "")
+                     + (expressionArray[4] || "")
+                     + (expressionArray[6] || "")
+                     + (expressionArray[8] || "7")
+
+      return expression
+    }
+
+
     _updateArray() {
       let newItem = this.regexString
 
@@ -788,7 +821,7 @@
       , flags: this.flags
       }
 
-      console.log(message)
+      // console.log (message)
 
       chrome.runtime.sendMessage(
         message
@@ -801,13 +834,13 @@
   function treatIncomingMessages(request, sender, sendResponse) {
     let response = "Message received:" + JSON.stringify(request)
 
-    console.log(
+    // console.log (
       "Message received"
-    , sender.tab
-    ? "from a content script:" + sender.tab.url
-    : "from the extension"
-    , request
-    )
+    // , sender.tab
+    // ? "from a content script:" + sender.tab.url
+    // : "from the extension"
+    // , request
+    // )
 
     switch (request) {
       case "activateExtension":

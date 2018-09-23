@@ -139,8 +139,10 @@
     tellClientThatAllIsReady(tabId) {
       if (!tabId) {
         tabId = this.tabId
+      } else {
+        chrome.tabs.sendMessage(tabId, "activateExtension")
       }
-      
+
       chrome.tabs.sendMessage(tabId, "windowsCreated")
     }
 
