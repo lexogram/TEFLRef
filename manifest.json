@@ -14,7 +14,10 @@
 
 , "content_scripts": [
     {
-      "matches": ["file:///home/blackslate/Repos/russkiy.fun/support/web/*"]
+      "matches": [
+        "file:///home/blackslate/Repos/russkiy.fun/support/web/*"
+      , "*://lexogram.com/support/*"
+      ]
     , "js": ["js/content.js"]
     , "css": ["css/content.css"]
     }
@@ -25,6 +28,10 @@
   , "tabs"
   , "storage"
   ]
+
+, "externally_connectable": {
+    "matches": ["*://lexogram.com/support/*"]
+  }
 }
 
 // Replace

@@ -23,6 +23,7 @@
 
 
   var teflTabMap = {}
+  var portTabMap = {}
 
 
   class TEFLTab {
@@ -85,6 +86,7 @@
     constructor (tabId) {
       this.tabId = tabId
       this.tabInstances = []
+      this.tabPortMap = {}
       this.sites = {
         // dictionary: [
         //   { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
@@ -133,6 +135,13 @@
       , "activateExtension"
       , this.extensionActivated.bind(this)
       )
+
+      let port = portTabMap[tabId]
+      if (port) {
+        this.tabPortMap[tabId] = port
+      } else {
+        console.log("ERROR: no port found for tab", tabId)
+      }
     }
 
 
@@ -165,6 +174,21 @@
       })
 
       return success
+    }
+
+
+    // addPortForTab(tabId, port) {
+    //   this.tabPortMap[tabId] = port
+    // }
+
+
+    resetHTMLSpans(tabId, request) {
+      let port = this.tabPortMap[tabId]
+      if (!port) {
+        return console.log("ERROR: Port expected for resetHTMLSpans")
+      }
+
+      port.postMessage(request)
     }
 
 
@@ -285,12 +309,19 @@
   }
 
 
+  function resetHTMLSpans(request, sender) {
+    let tabId = sender.tab.id
+    let teflRefManager = teflTabMap[tabId]
+    teflRefManager.resetHTMLSpans(tabId, request)
+  }
+
+
   function treatIncomingMessage(request, sender, sendResponse) {
     let response = "Message received: " + JSON.stringify(request)
 
     console.log("Incoming message from tab:" + sender.tab.url)
 
-    switch (request.message) {
+    switch (request.subject) {
       case "showPageAction":
         showPageAction(sender.tab.id, request.value)
     
@@ -299,12 +330,53 @@
       case "windowsUpdate": 
         response = updateWindows(request, sender)
       break
+
+      case "resetHTMLSpans": 
+        response = resetHTMLSpans(request, sender)
+      break
     }
 
     sendResponse(response)
   }
 
 
+  function treatConnectionRequest(port) {
+    // console.log("Connection request received", ...arguments)
+    // Port {
+    //   name: (...)
+    // , onDisconnect: (...)
+    // , onMessage: (...)
+    // , sender: {
+    //     frameId: 0
+    //   , tab: { ... }
+    //   , url: "http://lexogram.com/support/texts/crow/"
+    //   }
+    // }
+
+    // port.onMessage.addListener(treatMessageFromPort)
+    port.onDisconnect.addListener(treatDisconnectFromPort)
+
+    // The client page has just loaded, but no request to activate
+    // the extension has been received yet. Keep the port safe in
+    // case it is needed.
+    let tabId = port.sender.tab.id
+    portTabMap[tabId] = port
+  }
+
+
+  // function treatMessageFromPort(message) {
+  //   console.log("Message received:", ...arguments)
+  // }
+
+
+  function treatDisconnectFromPort() {
+    console.log("Disconnection:", ...arguments)
+    // TODO: Remove port from portTabMap and liberate the
+    // TEFLRefManager
+  }
+
+
   chrome.pageAction.onClicked.addListener(useExtension)
   chrome.runtime.onMessage.addListener(treatIncomingMessage)
+  chrome.runtime.onConnectExternal.addListener(treatConnectionRequest)
 })()

@@ -141,6 +141,7 @@
         }
       } catch (error) {
         console.log(error)
+        return "ERROR: " + JSON.stringify(error)
       }
 
       expressions.sort((a, b) => {
@@ -285,11 +286,23 @@
 
     addNewWords() {
       // console.log(this.addField.value)
-      expressions = new ParseCEFRInput(
+      let expressions = new ParseCEFRInput(
         this.addField.value
       , this.expressions
       )
-      console.log(expressions)
+
+      console.log(expressions, this.expressions)
+
+      if (expressions instanceof Array && expressions.length) {
+        this.expressions = expressions
+      }
+
+      let message = {
+        subject: "resetHTMLSpans"
+      , expressions: JSON.stringify(expressions)
+      }
+
+      chrome.runtime.sendMessage(message)
     }
 
 
@@ -895,7 +908,7 @@
 
     _requestWindowsUpdate() {
       let message = {
-        message: "windowsUpdate"
+        subject: "windowsUpdate"
       , word: this.wordLookUp || this.regexString
       , image: this.imageLookUp || this.wordLookUp || this.regexString
       , flags: this.flags
@@ -942,7 +955,7 @@
   chrome.runtime.onMessage.addListener(treatIncomingMessages)
 
   chrome.runtime.sendMessage(
-    { message: "showPageAction"
+    { subject: "showPageAction"
     , value: !!expressions
     }
   , genericCallback
