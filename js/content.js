@@ -80,13 +80,89 @@
   })()
 
 
+  class ParseCEFRInput {
+    constructor(rawText, expressions = []) {
+      // ((?:(A\d|B\d|C\d|Unlisted))
+      // \d+\s*types\s*\/\s*\d+\s*tokens?\s*\n
+      // \d+\.?\d*%\s\/\s*\d+\.?\d*%\s*\n
+      // \(Hide words?\)\s*\n)
+      // ([\s\S]+?)
+      // (?:(?=A1)|(?=A2)|(?=B1)|(?=B2)|(?=C1)|(?=C2)
+      // |(?=Unlisted)|(?=\*))
+
+      rawText += "Ω"
+      let levels = ["A1","A2","B1","B2","C1","C2","Unlisted"]
+      let match
+        , words
+        , level
+      let wordsOnlyRegex = /^.+?(?= \()/ // "word up toˇ (1) (Amend)"
+      let levelString = "("
+                      +   "(" // group 2: A1 - C2 + Unlisted
+                      +     "(?:A\\d|B\\d|C\\d|Unlisted)"
+                      +   ")"
+                      // Details of words found at this level
+                      +   "\\d+ types\\s*\\/\\s*\\d+\\stokens?\\s*\\n"
+                      +   "\\d+\\.?\\d*%\\s*\\/\\s*\\d+\\.?\\d*%\\s*\\n"
+                      +   "\\(Hide words\\)\\s*\\n"
+                      + ")"
+                      // Words at this level
+                      + "([\\s\\S]+?)"
+                      // Look as far as the beginning of the next level
+                      + "(?:"
+                      +   "(?=A1)|(?=A2)|(?=B1)|(?=B2)"
+                      +  "|(?=C1)|(?=C2)|(?=Unlisted)|(?=Ω)"
+                      + ")"
+
+      this.levelRegex = new RegExp(levelString, "g")
+
+      try {
+        while (match = this.levelRegex.exec(rawText)) {
+          level = levels.indexOf(match[2]) + 1
+
+          if (level < 2) {} else {
+            words = match[3].split("\n")
+
+            words = words.map(line => {
+              // Be forgiving if there are no parentheses
+              line = (line.match(wordsOnlyRegex) || [line])[0]
+              // Don't give level to empty lines
+              return line
+                   ? line + level
+                   : line
+            })
+
+            // Remove empty lines and duplicates
+            words = words.filter((line, index, array) => {
+              return line !== "" && array.indexOf(line) === index
+            })
+
+            expressions = expressions.concat(words)
+          }
+        }
+      } catch (error) {
+        console.log(error)
+      }
+
+      expressions.sort((a, b) => {
+        return (b.length + (b.indexOf(" ") > -1) * 5)
+             - (a.length + (a.indexOf(" ") > -1) * 5)
+      })
+
+      return expressions
+    }
+  }
+
+
 
   class TEFLRefPanel {
     constructor(expressions) {
       // console.log ("TEFLRefPanel loaded")
 
       this.expressions = expressions
-      this.loadInterface()
+      this._injectHTML()
+      this._initialize()
+
+      this.updatedArray = this._launderExpressions()
 
       // this.expression
       // this.parseRegex
@@ -99,15 +175,6 @@
       // this.level
       // this.spans
       // ... pointers to each panel element
-    }
-
-
-    loadInterface() {
-      this._injectHTML()
-      this._initialize()
-
-      this.updatedArray = this._launderExpressions()
-
     }
 
 
@@ -213,6 +280,16 @@
       } else {
         this.article.classList.add("error")
       }
+    }
+
+
+    addNewWords() {
+      // console.log(this.addField.value)
+      expressions = new ParseCEFRInput(
+        this.addField.value
+      , this.expressions
+      )
+      console.log(expressions)
     }
 
 
@@ -392,6 +469,9 @@
 
       listener = this.redrawAndExport.bind(this)
       this.redraw.addEventListener("mouseup", listener, false)
+
+      listener = this.addNewWords.bind(this)
+      this.addButton.addEventListener("mouseup", listener, false)
 
       listener = this.newSelection.bind(this)
       this.panel.addEventListener("change", listener, false)
