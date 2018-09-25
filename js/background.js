@@ -76,7 +76,7 @@
 
 
     urlUpdated() {
-      console.log("urlUpdated for " + this.tabId, ...arguments)
+      notify("urlUpdated for " + this.tabId, ...arguments)
     }
   }
 
@@ -88,51 +88,51 @@
       this.tabInstances = []
       this.tabPortMap = {}
       this.sites = {
-        // dictionary: [
-        //   { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
-        //   , flag: "^[^Dd]*$"
-        //   }
-        // , { url: "https://dictionary.cambridge.org/dictionary/english/"
-        //   , flag: "D"
-        //   }
-        // , { url: "https://www.merriam-webster.com/dictionary/"
-        //   , flag: "m"
-        //   }
-        // ]
+       dictionary: [
+          { url: "https://dictionary.cambridge.org/dictionary/english-russian/"
+          , flag: "^[^Dd]*$"
+          }
+        , { url: "https://dictionary.cambridge.org/dictionary/english/"
+          , flag: "D"
+          }
+        , { url: "https://www.merriam-webster.com/dictionary/"
+          , flag: "m"
+          }
+        ]
 
-        // , wiki: [
-        //     { url: "https://ru.wiktionary.org/wiki/"
-        //     , hash: "#Английский" 
-        //     , flag: "^[^Ww]*$"
-        //     }
-        //   , { url: "https://en.wiktionary.org/wiki/"
-        //     , flag: "W"
-        //     }
-        //   , { url: "https://en.wikipedia.org/wiki/"
-        //     , flag: "e"
-        //     }
-        //   , { url: "https://ru.wikipedia.org/wiki/"
-        //     , flag: "E"
-        //     }
-        //   ]
+        , wiki: [
+            { url: "https://ru.wiktionary.org/wiki/"
+            , hash: "#Английский" 
+            , flag: "^[^Ww]*$"
+            }
+          , { url: "https://en.wiktionary.org/wiki/"
+            , flag: "W"
+            }
+          , { url: "https://en.wikipedia.org/wiki/"
+            , flag: "e"
+            }
+          , { url: "https://ru.wikipedia.org/wiki/"
+            , flag: "E"
+            }
+          ]
 
-        // , tatoeba: [
-        //     { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
-        //     , flag: "^[^Tt]*$"
-        //     }
-        // , ]
+        , tatoeba: [
+            { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
+            , flag: "^[^Tt]*$"
+            }
+        , ]
 
-        // , images: [
-        //     { url: "https://www.google.ru/search?tbm=isch&q="
-        //     , imageSearch: true 
-        //     , flag: "^[^Ii]*$"
-        //     }
-        // ]
+        , images: [
+            { url: "https://www.google.ru/search?tbm=isch&q="
+            , imageSearch: true 
+            , flag: "^[^Ii]*$"
+            }
+       ]
       }
 
       chrome.tabs.sendMessage(
         this.tabId
-      , "activateExtension"
+      , { subject: "activateExtension" }
       , this.extensionActivated.bind(this)
       )
 
@@ -140,8 +140,53 @@
       if (port) {
         this.tabPortMap[tabId] = port
       } else {
-        console.log("ERROR: no port found for tab", tabId)
+        notify("TEFLRefManager constructor\nSTATUS: no port found for tab", tabId)
       }
+    }
+
+
+    changePort(tabId, request) {
+      // { subject: "changePort"
+      // , action: <"add" | "delete">
+      // , tabId: tabId
+      // , port: port
+      // }
+
+      let error
+        , result
+
+      let addPort = (tabId, port) => {
+        this.tabPortMap[tabId] = port
+        return !port
+      }
+
+      let deletePort = (tabId, port) => {
+        if (this.tabPortMap[tabId] !== port) {
+          return  "Unknown port for" + tabId
+                + "should be: "+port+", is:"+this.tabPortMap[tabId]
+        }
+
+        delete this.tabPortMap[tabId]
+
+        return false
+      }
+
+      switch (request.action) {
+        case "add":
+          error = addPort(request.tabId, request.port)
+        break
+        case "delete":
+          error = deletePort(request.tabId, request.porta)
+      }
+
+      result = "Connection for tab "
+      + tabId
+      + ": " + request.action + " port\n"
+      + error 
+        ? error
+        : "Successful"
+
+      return result
     }
 
 
@@ -149,15 +194,15 @@
       if (!tabId) {
         tabId = this.tabId
       } else {
-        chrome.tabs.sendMessage(tabId, "activateExtension")
+        chrome.tabs.sendMessage(tabId, {subject:"activateExtension"})
       }
 
-      chrome.tabs.sendMessage(tabId, "windowsCreated")
+      chrome.tabs.sendMessage(tabId, {subject:"windowsCreated"})
     }
 
 
     extensionActivated(response) {
-      // console.log("extensionActivated", response)
+      notify("extensionActivated", response)
 
       chrome.pageAction.setIcon({
         tabId: this.tabId
@@ -168,27 +213,30 @@
     }
 
 
-    updateWindows(request) {
+    windowsUpdate(tabId, request) {
       let success = this.tabInstances.every((tabInstance) => {
         return tabInstance.setURL(request)
       })
 
       return success
+           ? "Windows successfully updated"
+           : "Error in windowsUpdate"
     }
 
 
-    // addPortForTab(tabId, port) {
-    //   this.tabPortMap[tabId] = port
-    // }
-
-
     resetHTMLSpans(tabId, request) {
+      notify("Forwarding resetHTMLSpans to " + tabId, request)
       let port = this.tabPortMap[tabId]
-      if (!port) {
-        return console.log("ERROR: Port expected for resetHTMLSpans")
-      }
-
       port.postMessage(request)
+    }
+
+
+    htmlSpansReset(tabId, message) {
+      chrome.tabs.sendMessage(tabId, message, (response) => {
+        notify(response)
+      })
+
+      return "htmlSpansReset"
     }
 
 
@@ -203,8 +251,6 @@
           let siteData = this.sites[windowName]
           tabCounter[0] += siteData.length
         })
-
-        console.log("getTabCounter", tabCounter[0])
 
         return tabCounter
       }
@@ -267,10 +313,8 @@
   }
 
 
-  function showPageAction(tabId, boolean) {
-    if (boolean) {
-      chrome.pageAction.show(tabId)
-    }
+  function showPageAction(tabId) {
+    chrome.pageAction.show(tabId)
   }
 
 
@@ -285,9 +329,11 @@
     , activateExtension
     )
 
-
     function activateExtension(tabs) {
       let tabId = tabs[0].id
+
+      notify ("Activating extension for tab " + tabId)
+
       let instance = teflTabMap[Object.keys(teflTabMap)[0]]
 
       if (!instance) {
@@ -301,47 +347,29 @@
   }
 
 
-  function updateWindows(request, sender) {
-    let manager = teflTabMap[sender.tab.id]
-    let response = manager.updateWindows(request)
-
-    return response
-  }
-
-
-  function resetHTMLSpans(request, sender) {
-    let tabId = sender.tab.id
-    let teflRefManager = teflTabMap[tabId]
-    teflRefManager.resetHTMLSpans(tabId, request)
-  }
-
-
   function treatIncomingMessage(request, sender, sendResponse) {
     let response = "Message received: " + JSON.stringify(request)
 
-    console.log("Incoming message from tab:" + sender.tab.url)
+    notify(
+      "Incoming message from tab:" + sender.tab.id
+    , request
+    )
 
     switch (request.subject) {
       case "showPageAction":
-        showPageAction(sender.tab.id, request.value)
-    
+        showPageAction(sender.tab.id)  
       break
 
-      case "windowsUpdate": 
-        response = updateWindows(request, sender)
-      break
-
-      case "resetHTMLSpans": 
-        response = resetHTMLSpans(request, sender)
+      default: 
+        response = forwardMessage(sender.tab.id, request)
       break
     }
 
-    sendResponse(response)
+    sendResponse("Response from background: " + response)
   }
 
 
   function treatConnectionRequest(port) {
-    // console.log("Connection request received", ...arguments)
     // Port {
     //   name: (...)
     // , onDisconnect: (...)
@@ -353,7 +381,7 @@
     //   }
     // }
 
-    // port.onMessage.addListener(treatMessageFromPort)
+    port.onMessage.addListener(treatMessageFromPort)
     port.onDisconnect.addListener(treatDisconnectFromPort)
 
     // The client page has just loaded, but no request to activate
@@ -361,18 +389,71 @@
     // case it is needed.
     let tabId = port.sender.tab.id
     portTabMap[tabId] = port
+
+    notify("Connection request received from port " + tabId)
+
+    let message = {
+      subject: "changePort"
+    , action: "add"
+    , tabId: tabId
+    , port: port
+    }
+
+    let result = forwardMessage(tabId, message)
+    notify(result)
+
+    port.postMessage({subject: "connectionReceived", result: result})
   }
 
 
-  // function treatMessageFromPort(message) {
-  //   console.log("Message received:", ...arguments)
-  // }
+  function treatMessageFromPort(message, port) {
+    notify("Message received from port:", ...arguments)
+    let tabId = port.sender.tab.id
+    let result = forwardMessage(tabId, message)
+
+    notify("Port message from tab " + tabId + ": " + result)
+  }
 
 
-  function treatDisconnectFromPort() {
-    console.log("Disconnection:", ...arguments)
+  function treatDisconnectFromPort(port) {
+    notify("Disconnection:", ...arguments)
     // TODO: Remove port from portTabMap and liberate the
     // TEFLRefManager
+
+    let tabId = port.sender.tab.id
+    delete portTabMap[tabId]
+
+    let message = {
+      subject: "changePort"
+    , action: "delete"
+    , tabId: tabId
+    , port: port
+    }
+
+    let result = forwardMessage(tabId, message)
+    notify(result)
+  }
+
+
+  function forwardMessage(tabId, request) {
+    notify("Forwarding " + request.subject + " from tab "+ tabId)
+    let manager = teflTabMap[tabId]
+    let response
+      , method
+
+    if (manager) {
+      method = manager[request.subject]
+      if (method) {
+        response = method.bind(manager)(tabId, request)
+
+      } else {
+        response = "STATUS: No method "+request.subject+" for "+tabId
+      }
+    } else {
+      response = "STATUS: No manager found for tab " + tabId
+    }
+
+    return response
   }
 
 

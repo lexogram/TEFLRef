@@ -9,7 +9,7 @@
   "use strict"
 
 
-  /// <<< POLYFILLS
+  // POLYFILLS // POLYFILLS // POLYFILLS // POLYFILLS // POLYFILLS //
 
     // http://stackoverflow.com/a/4314050/1927589
     if (!String.prototype.splice) {
@@ -55,23 +55,23 @@
 
   /// POLYFILLS >>>
 
-  function genericCallback() {
-    console.log(...arguments)
-  }
-
-
 
   var expressions = (function getExpressions(){
     // Parse the HTML page for the expressions array
+    // If it exists, initialize extension
+
     let result = null
 
     let HTML = document.body.innerHTML
-    let regex = /\n\s*let\s+(\w+)\s*=\s*(\[[\S\s]*\])[\s\S]*new\s+\w+\.MarkUp\(\1/
+    let regex = 
+    /\n\s*let\s+(\w+)\s*=\s*(\[[\S\s]*\])[\s\S]*new\s+\w+\.MarkUp\(\1/
+    
     let match = regex.exec(HTML)
 
     if (match) {
       try {
         result = JSON.parse(match[2])
+        initializeExtension()
 
       } catch (error) {}
     }
@@ -80,79 +80,7 @@
   })()
 
 
-  class ParseCEFRInput {
-    constructor(rawText, expressions = []) {
-      // ((?:(A\d|B\d|C\d|Unlisted))
-      // \d+\s*types\s*\/\s*\d+\s*tokens?\s*\n
-      // \d+\.?\d*%\s\/\s*\d+\.?\d*%\s*\n
-      // \(Hide words?\)\s*\n)
-      // ([\s\S]+?)
-      // (?:(?=A1)|(?=A2)|(?=B1)|(?=B2)|(?=C1)|(?=C2)
-      // |(?=Unlisted)|(?=\*))
-
-      rawText += "Ω"
-      let levels = ["A1","A2","B1","B2","C1","C2","Unlisted"]
-      let match
-        , words
-        , level
-      let wordsOnlyRegex = /^.+?(?= \()/ // "word up toˇ (1) (Amend)"
-      let levelString = "("
-                      +   "(" // group 2: A1 - C2 + Unlisted
-                      +     "(?:A\\d|B\\d|C\\d|Unlisted)"
-                      +   ")"
-                      // Details of words found at this level
-                      +   "\\d+ types\\s*\\/\\s*\\d+\\stokens?\\s*\\n"
-                      +   "\\d+\\.?\\d*%\\s*\\/\\s*\\d+\\.?\\d*%\\s*\\n"
-                      +   "\\(Hide words\\)\\s*\\n"
-                      + ")"
-                      // Words at this level
-                      + "([\\s\\S]+?)"
-                      // Look as far as the beginning of the next level
-                      + "(?:"
-                      +   "(?=A1)|(?=A2)|(?=B1)|(?=B2)"
-                      +  "|(?=C1)|(?=C2)|(?=Unlisted)|(?=Ω)"
-                      + ")"
-
-      this.levelRegex = new RegExp(levelString, "g")
-
-      try {
-        while (match = this.levelRegex.exec(rawText)) {
-          level = levels.indexOf(match[2]) + 1
-
-          if (level < 2) {} else {
-            words = match[3].split("\n")
-
-            words = words.map(line => {
-              // Be forgiving if there are no parentheses
-              line = (line.match(wordsOnlyRegex) || [line])[0]
-              // Don't give level to empty lines
-              return line
-                   ? line + level
-                   : line
-            })
-
-            // Remove empty lines and duplicates
-            words = words.filter((line, index, array) => {
-              return line !== "" && array.indexOf(line) === index
-            })
-
-            expressions = expressions.concat(words)
-          }
-        }
-      } catch (error) {
-        console.log(error)
-        return "ERROR: " + JSON.stringify(error)
-      }
-
-      expressions.sort((a, b) => {
-        return (b.length + (b.indexOf(" ") > -1) * 5)
-             - (a.length + (a.indexOf(" ") > -1) * 5)
-      })
-
-      return expressions
-    }
-  }
-
+  /// CLASSES //  CLASSES //  CLASSES //  CLASSES //  CLASSES ///
 
 
   class TEFLRefPanel {
@@ -164,6 +92,25 @@
       this._initialize()
 
       this.updatedArray = this._launderExpressions()
+
+      this.wordsOnlyRegex = /^.+?(?= \()/ // "word up toˇ (1) (Amend)"
+      let level$ = "(" // group 2: A1 - C2 + Unlisted
+                 +   "(?:A\\d|B\\d|C\\d|Unlisted)"
+                 + ")\\s*"
+                 // Details of words found at this level
+                 + "(?:\\d+ types\\s*\\/\\s*\\d+\\stokens?\\s*\\n"
+                 + "\\d+\\.?\\d*%\\s*\\/\\s*\\d+\\.?\\d*%\\s*\\n"
+                 + "\\(Hide words\\)\\s*\\n)?"
+                // Words at this level
+                 + "([\\s\\S]+?)"
+                // Look as far as the beginning of the next level
+                 + "(?:"
+                 +   "(?=A1)|(?=A2)|(?=B1)|(?=B2)"
+                 +  "|(?=C1)|(?=C2)|(?=Unlisted)|(?=Ω)"
+                 + ")"
+
+      this.levelRegex = new RegExp(level$, "g")
+      this.levels = ["A1","A2","B1","B2","C1","C2","Unlisted"]
 
       // this.expression
       // this.parseRegex
@@ -205,11 +152,6 @@
       this._showFlags()
       this._showOccurrences()
       this._showFlexion()
-
-      // console.log(this.updatedArray.slice(
-      //   Math.max(0, this.updatedArray.index - 2)
-      // , Math.min(this.updatedArray.length, this.updatedArray.index + 2)
-      // ))
 
       this._requestWindowsUpdate()
     }
@@ -286,15 +228,13 @@
 
     addNewWords() {
       // console.log(this.addField.value)
-      let expressions = new ParseCEFRInput(
+      let expressions = this._parseCEFRInput(
         this.addField.value
-      , this.expressions
+      , this.updatedArray
       )
 
-      console.log(expressions, this.expressions)
-
       if (expressions instanceof Array && expressions.length) {
-        this.expressions = expressions
+        this.updatedArray = expressions
       }
 
       let message = {
@@ -308,6 +248,65 @@
 
     redrawAndExport() {
       this._showUpdatedArray()
+    }
+
+
+    windowsCreated() {
+      this.goExpression()
+
+      return "Expression selected: " + this.expression
+    }
+
+
+    htmlSpansReset() {
+      this.spans = [].slice.call(document.querySelectorAll("span"))
+
+      return "HTML spans reset"
+    }
+
+
+    _parseCEFRInput (rawText, expressions = []) {
+      rawText += "Ω"
+      let match
+        , words
+        , level
+
+      try {
+        while (match = this.levelRegex.exec(rawText)) {
+          level = this.levels.indexOf(match[1]) + 1 || 7
+          // unlisted = default
+
+          if (level < 2) {} else {
+            words = match[2].split("\n")
+
+            words = words.map(line => {
+              // Be forgiving if there are no parentheses
+              line = (line.match(this.wordsOnlyRegex) || [line])[0]
+              // Don't give level to empty lines
+              return line
+                   ? line + level
+                   : line
+            })
+
+            // Remove empty lines and duplicates
+            words = words.filter((line, index, array) => {
+              return line !== "" && array.indexOf(line) === index
+            })
+
+            expressions = expressions.concat(words)
+          }
+        }
+      } catch (error) {
+        console.log(error)
+        return "ERROR: " + JSON.stringify(error)
+      }
+
+      expressions.sort((a, b) => {
+        return (b.length + (b.indexOf(" ") > -1) * 5)
+             - (a.length + (a.indexOf(" ") > -1) * 5)
+      })
+
+      return expressions
     }
 
 
@@ -470,8 +469,6 @@
       this.imageCheck = document.getElementById("images")
       this.wikipedia = document.getElementById("wikipedia")
 
-      this.spans = [].slice.call(document.querySelectorAll("span"))
-
       let listener = this.goExpression.bind(this)
       this.nextButton.addEventListener("mouseup", listener, false)
       this.backButton.addEventListener("mouseup", listener, false)
@@ -492,6 +489,7 @@
       this.parseRegex = /([^;¡!0-9]+)(;([^!¡0-9]*))?(¡([^!0-9]*))?(!([^!0-9]+))?(\d+)?/
      
       this.article.classList.add("tefl-ref")
+      this.htmlSpansReset()
 
       this.regex = ""
       this.regexString = ""
@@ -924,41 +922,54 @@
   }
 
 
-  function treatIncomingMessages(request, sender, sendResponse) {
-    let response = "Message received:" + JSON.stringify(request)
+  /// COMMUNICATION WITH EXTENSION // COMMUNICATION WITH EXTENSION ///
 
-    // console.log (
-    //  "Message received"
-    // , sender.tab
-    // ? "from a content script:" + sender.tab.url
-    // : "from the extension"
-    // , request
-    // )
 
-    switch (request) {
-      case "activateExtension":
-        if (!chrome.teflRefPanel) {
-          chrome.teflRefPanel = new TEFLRefPanel(expressions)
-        }
-        response = chrome.teflRefPanel.getState()
-      break
-
-      case "windowsCreated":
-        chrome.teflRefPanel.goExpression()
-      break
-    }
-
-    sendResponse(response)
+  function genericCallback() {
+    console.log(...arguments)
   }
 
 
-  chrome.runtime.onMessage.addListener(treatIncomingMessages)
+  function initializeExtension() {
+    console.log("content.js: initializeExtension")
 
-  chrome.runtime.sendMessage(
-    { subject: "showPageAction"
-    , value: !!expressions
+    chrome.runtime.onMessage.addListener(treatIncomingMessages)
+
+    chrome.runtime.sendMessage (
+      { subject: "showPageAction" }
+    , genericCallback
+    )
+  }
+
+
+  function treatIncomingMessages(request, sender, sendResponse) {
+    let senderId = sender.id || "tab" + sender.tab.id
+    console.log("Message received from " + senderId
+              + ": " + JSON.stringify(request))
+
+    let response = "(untreated)"
+    let panel = chrome.teflRefPanel
+    let method = panel
+               ? panel[request.subject]// may be undefined
+               : undefined             // pas de panel pas de chocolat
+
+    switch (request.subject) {
+      case "activateExtension":
+        if (!panel) {
+          panel = chrome.teflRefPanel = new TEFLRefPanel(expressions)
+        }
+
+        response = panel.getState()
+      break
+
+      default:
+        if (method) {
+          response = method.bind(panel)()
+        }
     }
-  , genericCallback
-  )
+
+    console.log(response)
+    sendResponse(response)
+  }
 
 })()
