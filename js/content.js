@@ -897,6 +897,12 @@
       })
 
       if (noChange) {
+        noChange = this.updatedArray.every((expression, index) => {
+          return this.expressions[index] === expression
+        })
+      }
+
+      if (noChange) {
         return console.log("No changes made")
       } else {
         console.log(JSON.stringify(this.updatedArray))
