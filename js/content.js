@@ -18,19 +18,22 @@
        * removing a range of characters and/or adding new characters.
        *
        * @this {String}
-       * @param {number} start Index at which to start changing the string.
-       * @param {number} delCount An integer indicating the number of old chars to remove.
-       * @param {string} newSubStr The String that is spliced in.
-       * @return {string} A new string with the spliced substring.
+       * @param  {number} start       Index at which to start changing
+       *                              the string.
+       * @param  {number} deleteCount An integer indicating the number 
+       *                              of old chars to remove.
+       * @param  {string} insertion   The String that is spliced in.
+       * @return {string}             A new string with the spliced
+       *                              substring.
        */
       
       String.prototype.splice = function(
         start = 0
-      , delCount = 0
-      , newSubStr = "") {
+      , deleteCount = 0
+      , insertion = "") {
         return this.slice(0, start)
-             + newSubStr
-             + this.slice(start + Math.abs(delCount))
+             + insertion
+             + this.slice(start + Math.abs(deleteCount))
       }
     }
 
@@ -50,6 +53,26 @@
         }
 
         return this[this.index]
+      }
+    }
+
+
+    if (!Array.prototype.cherrypick) {
+      Array.prototype.cherrypick = function(fn) {
+        let basket = []
+        let ii = this.length
+        let item
+
+        for ( ; ii-- ; ) {
+          item = this[ii]
+
+          if (fn(item)) {
+            basket.unshift(item)
+            this.splice(ii, 1)
+          }
+        }
+
+        return basket
       }
     }
 
@@ -94,7 +117,7 @@
       this.wordsOnlyRegex = /^.+?(?= \()/ // "word up toˇ (1) (Amend)"
       let level$ = "(" // group 2: A1 - C2 + Unlisted
                  +   "(?:A\\d|B\\d|C\\d|Unlisted)"
-                 + ")\\s*"
+                 + ")?\\s*"
                  // Details of words found at this level
                  + "(?:\\d+ types\\s*\\/\\s*\\d+\\stokens?\\s*\\n"
                  + "\\d+\\.?\\d*%\\s*\\/\\s*\\d+\\.?\\d*%\\s*\\n"
@@ -255,8 +278,52 @@
     }
 
 
-    removeWord() {
-      console.log(this.expression)
+    removeExpression() {
+      // console.log(this.expression)
+      // console.log("before")
+      // console.log(this.spans.map(span => span.dataset.link))
+
+      let data = this._getData(this.expression)
+      let link = data.link.replace(/\+/g, "\\+")
+      let regexString = "<span\[^>]+(?=data-link\\s*=\\s*\""
+                      + link
+                      + "\")[^>]+>("
+                      + data.term
+                      + ")</span>"
+      let regex = new RegExp(regexString, "g")
+      let html = this.article.innerHTML
+      let match
+
+      // console.log("datalink", link)
+      let unspun = this.spans.cherrypick(span => {
+        return span.dataset.link === link
+      })
+
+      // console.log("after")
+      // console.log(unspun.map(span => span.dataset.link))
+      // console.log(this.spans.map(span => span.dataset.link))
+
+      while (match = regex.exec(html)) {
+        console.log(match)
+        let start = match.index
+        let deleteCount = match[0].length
+        let insertion = match[1]
+        html = html.splice(start, deleteCount, insertion)
+
+        // html is now shorter and the next occurrence might be 
+        // skipped if we don't adjust regex.lastIndex so that regex
+        // starts looking for the next match immediately after the
+        // end of the replaced string.
+        regex.lastIndex += insertion.length - deleteCount
+      }
+
+      this.article.innerHTML = html
+
+      this.htmlSpansReset()
+
+      this.updatedArray.splice(this.updatedArray.index, 1)
+      this.updatedArray.index -= 1
+      this.goExpression()
     }
 
 
@@ -284,10 +351,11 @@
       let match
         , words
         , level
+        , index
 
       try {
         while (match = this.levelRegex.exec(rawText)) {
-          level = this.levels.indexOf(match[1]) + 1 || 7
+          level = "°" + (this.levels.indexOf(match[1]) + 1 || 7)
           // unlisted = default
 
           if (level < 2) {} else {
@@ -296,6 +364,8 @@
             words = words.map(line => {
               // Be forgiving if there are no parentheses
               line = (line.match(this.wordsOnlyRegex) || [line])[0]
+              // If this is manual input, there may be regex parens
+              line = this._tweakRegexString(line)
               // Don't give level to empty lines
               return line
                    ? line + level
@@ -497,7 +567,7 @@
       listener = this.addNewWords.bind(this)
       this.addButton.addEventListener("mouseup", listener, false)
 
-      listener = this.removeWord.bind(this)
+      listener = this.removeExpression.bind(this)
       this.remove.addEventListener("mouseup", listener, false)
 
       listener = this.newSelection.bind(this)
@@ -720,23 +790,26 @@
     _updateRegex(value) {
       let color = "#000"
       let bgColor = "#fff"
-      let index = -1
-      let regex
+      let checkbox
+        , regex
+        , check
 
       try {
-        regex = new RegExp("^" + value + "$", "i")
-
-        // Ensure that any parentheses are non-capturing
-        while ((index = value.indexOf("(", index + 1)) > -1) {
-          if (value.indexOf("?:") !== index + 1) {
-            value = value.splice(index + 1, 0, "?:")
+        check = this._tweakRegexString(value)
+         if (value !== check) {
+          if (check === "$^") {
+            // value cannot be converted to a regular expression
+            color = "#900"
+            bgColor = "#fdd"
+          } else {
             color = "#060"
             bgColor = "#efe"
-
-            // Correct the regular expression
-            regex = new RegExp("^" + value + "$", "i")
           }
+
+          value = check
         }
+        
+        regex = new RegExp("^" + value + "$", "i")
 
         this._updateField("regexString", value)
 
@@ -751,6 +824,36 @@
       // this.regexString = value // already done in _updateField
 
       return regex
+    }
+
+
+    _tweakRegexString(regexString) {
+      let index = -1
+
+      // Ensure that any parentheses are non-capturing
+      while ((index = regexString.indexOf("(", index + 1)) > -1) {
+        if (regexString.indexOf("?:", index) !== index + 1) {
+          regexString = regexString.splice(index + 1, 0, "?:")
+        }
+      }
+
+      // Ensure alternatives are enclosed in a non-capturing group
+      if (regexString.indexOf("|") > -1) {
+        if (regexString.indexOf("(")) {// !== 0)
+          regexString = "(?:" + regexString + ")"
+        }
+      }
+
+      // Ensure the string can be converted to a regular expression
+      try {
+        let regex = new RegExp(regexString)
+
+      } catch (error) {
+        console.log("Invalid string for RegExp: " + regexString)
+        regexString = "$^"
+      }
+
+      return regexString
     }
 
 
@@ -863,7 +966,7 @@
 
 
     _toggleScrollEnabled(enabled) {
-        this.upButton.disabled = this.downButton.disabled = !enabled
+      this.upButton.disabled = this.downButton.disabled = !enabled
     }
 
 
@@ -891,33 +994,11 @@
 
 
     _orderByPosition(a, b) {
-      let getDataLink = (expression) => {
-        let match = this.parseRegex.exec(expression)  
-
-        // console.log(match)
-        // 0: "expression;link¡image+link!Wit7"
-        // 1: "expression"
-        // 2: ";link"
-        // 3: "link"
-        // 4: "¡image+link"
-        // 5: "image+link"
-        // 6: "!Wit"
-        // 7: "Wit"
-        // 8: "7"
-        // groups: undefined
-        // index: 0
-        // input: "expression;link¡image+link!Wit7"
-        
-        return (match[3] || match[1]) 
-             + (match[4] || "")
-             + (match[6] || "")
-      }
-
       let getPosition = (expression) => {
         let position = this.positions[expression]
 
         if (position === undefined) {
-          let dataLink = getDataLink(expression)
+          let dataLink = this._getData(expression).link
 
           position = this.spans.findIndex((span) => {
             return span.dataset.link === dataLink
@@ -930,6 +1011,35 @@
       }
 
       return getPosition(a) - getPosition(b)
+    }
+
+
+    _getData(expression) {
+      let match = this.parseRegex.exec(expression)  
+
+      // console.log(match)
+      // 0: "expression;link¡image+link!Wit7"
+      // 1: "expression"
+      // 2: ";link"
+      // 3: "link"
+      // 4: "¡image+link"
+      // 5: "image+link"
+      // 6: "!Wit"
+      // 7: "Wit"
+      // 8: "7"
+      // groups: undefined
+      // index: 0
+      // input: "expression;link¡image+link!Wit7"
+      
+      let term = match[1]
+      let link = (match[3] || term) 
+               + (match[4] || "")
+               + (match[6] || "")
+
+      return {
+        term: term
+      , link: link
+      }
     }
 
 
