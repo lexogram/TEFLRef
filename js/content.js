@@ -91,8 +91,6 @@
       this._injectHTML()
       this._initialize()
 
-      this.updatedArray = this._launderExpressions()
-
       this.wordsOnlyRegex = /^.+?(?= \()/ // "word up toˇ (1) (Amend)"
       let level$ = "(" // group 2: A1 - C2 + Unlisted
                  +   "(?:A\\d|B\\d|C\\d|Unlisted)"
@@ -111,6 +109,9 @@
 
       this.levelRegex = new RegExp(level$, "g")
       this.levels = ["A1","A2","B1","B2","C1","C2","Unlisted"]
+      this.positions = {}
+
+      this.updatedArray = this._launderExpressions()
 
       // this.expression
       // this.parseRegex
@@ -233,16 +234,29 @@
       , this.updatedArray
       )
 
+      // expressions are sorted by length, so that the content page
+      // will apply them in order of decreasing complexity
       if (expressions instanceof Array && expressions.length) {
         this.updatedArray = expressions
-      }
+        console.log(JSON.stringify(expressions))
 
-      let message = {
-        subject: "resetHTMLSpans"
-      , expressions: JSON.stringify(expressions)
-      }
+        let message = {
+          subject: "resetHTMLSpans"
+        , expressions: JSON.stringify(expressions)
+        }
 
-      chrome.runtime.sendMessage(message)
+        chrome.runtime.sendMessage(message)
+
+        // expressions are now re-sorted by order of first appearance
+        // so that we can step through them in text order
+        this.positions = {}
+        expressions.sort(this._orderByPosition.bind(this))
+      }
+    }
+
+
+    removeWord() {
+      console.log(this.expression)
     }
 
 
@@ -336,7 +350,7 @@
         }
       })
 
-      return expressions
+      return expressions.sort(this._orderByPosition.bind(this))
     }
 
 
@@ -483,11 +497,18 @@
       listener = this.addNewWords.bind(this)
       this.addButton.addEventListener("mouseup", listener, false)
 
+      listener = this.removeWord.bind(this)
+      this.remove.addEventListener("mouseup", listener, false)
+
       listener = this.newSelection.bind(this)
       this.panel.addEventListener("change", listener, false)
+      // parseRegex is not identical to the linkRegex used in
+      // markup.js _addSpansToHTML, because flag characters (:!¡°)
+      // are wanted in  _launderExpressions and _generateExpression,
+      // but not wanted in goExpression, so both options are provided
+      this.parseRegex = /([^;¡!°]+)(;([^!¡°]*))?(¡([^!°]*))?(!([^!°]+))?(°(\d+))?/
+      //mup.linkRegex = /([^;¡!°]+)(?:;([^!¡°]*))?(¡[^!°]*)?(![^°]+)?(?:°(\d+))?/
 
-      this.parseRegex = /([^;¡!0-9]+)(;([^!¡0-9]*))?(¡([^!0-9]*))?(!([^!0-9]+))?(\d+)?/
-     
       this.article.classList.add("tefl-ref")
       this.htmlSpansReset()
 
@@ -505,11 +526,11 @@
     _showInputs(match) {
 
       // console.log(match)
-      // 0: "expression;link:image+link!Wit7"
+      // 0: "expression;link¡image+link!Wit7"
       // 1: "expression"
       // 2: ";link"
       // 3: "link"
-      // 4: ":image+link"
+      // 4: "¡image+link"
       // 5: "image+link"
       // 6: "!Wit"
       // 7: "Wit"
@@ -568,11 +589,11 @@
       this.imageCheck.checked = (this.flags.indexOf("i") < 0)
 
       // console.log(match)
-      // 0: "expression;link:image+link!Wit7"
+      // 0: "expression;link¡image+link!Wit7"
       // 1: "expression"
       // 2: ";link"
       // 3: "link"
-      // 4: ":image+link"
+      // 4: "¡image+link"
       // 5: "image+link"
       // 6: "!Wit"
       // 7: "Wit"
@@ -634,11 +655,11 @@
 
 
       // console.log(match)
-      // 0: "expression;link:image+link!Wit7"
+      // 0: "expression;link¡image+link!Wit7"
       // 1: "expression"
       // 2: ";link"
       // 3: "link"
-      // 4: ":image+link"
+      // 4: "¡image+link"
       // 5: "image+link"
       // 6: "!Wit"
       // 7: "Wit"
@@ -866,6 +887,49 @@
                      + (expressionArray[8] || "7")
 
       return expression
+    }
+
+
+    _orderByPosition(a, b) {
+      let getDataLink = (expression) => {
+        let match = this.parseRegex.exec(expression)  
+
+        // console.log(match)
+        // 0: "expression;link¡image+link!Wit7"
+        // 1: "expression"
+        // 2: ";link"
+        // 3: "link"
+        // 4: "¡image+link"
+        // 5: "image+link"
+        // 6: "!Wit"
+        // 7: "Wit"
+        // 8: "7"
+        // groups: undefined
+        // index: 0
+        // input: "expression;link¡image+link!Wit7"
+        
+        return (match[3] || match[1]) 
+             + (match[4] || "")
+             + (match[6] || "")
+      }
+
+      let getPosition = (expression) => {
+        let position = this.positions[expression]
+
+        if (position === undefined) {
+          let dataLink = getDataLink(expression)
+
+          position = this.spans.findIndex((span) => {
+            return span.dataset.link === dataLink
+          })
+
+          this.positions[expression] = position
+        }
+
+        return position
+      }
+
+      return getPosition(a) - getPosition(b)
     }
 
 

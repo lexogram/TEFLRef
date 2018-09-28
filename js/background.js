@@ -98,6 +98,9 @@
        //  , { url: "https://www.merriam-webster.com/dictionary/"
        //    , flag: "m"
        //    }
+       //  , { url: "about:blank"
+       //    , flag: "d"
+       //    }
        //  ]
 
        //  , wiki: [
@@ -114,11 +117,17 @@
        //    , { url: "https://ru.wikipedia.org/wiki/"
        //      , flag: "E"
        //      }
+       //    , { url: "about:blank"
+       //      , flag: "^(?=.*w)[^eE]*$" // find "w" AND no "e"
+       //      }
        //    ]
 
        //  , tatoeba: [
        //      { url: "https://tatoeba.org/rus/sentences/search?from=eng&to=rus&query="
        //      , flag: "^[^Tt]*$"
+       //      }
+       //    , { url: "about:blank"
+       //      , flag: "t"
        //      }
        //  , ]
 
@@ -126,6 +135,9 @@
        //      { url: "https://www.google.ru/search?tbm=isch&q="
        //      , imageSearch: true 
        //      , flag: "^[^Ii]*$"
+       //      }
+       //    , { url: "about:blank"
+       //      , flag: "i"
        //      }
        // ]
       }
